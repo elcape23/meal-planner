@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { RECIPES, DAYS, CATEGORIES, CAT_ICONS, fmt, getCat } from "@/lib/data";
+import Seguimiento from "@/components/Seguimiento";
 
 const S = {
   // Colors
@@ -112,6 +113,7 @@ export default function MealPlanner() {
             { id:"planner", label:"Semana",  icon:"📅" },
             { id:"lista",   label:`Lista${total > 0 ? ` · ${total}` : ""}`, icon:"🛒" },
             { id:"recetas", label:"Recetas", icon:"📖" },
+            { id:"seguimiento", label:"Seguimiento", icon:"📈" },
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
               flex:1, padding:"13px 6px", background:"none", border:"none",
@@ -377,6 +379,13 @@ export default function MealPlanner() {
             </div>
           </div>
         )}
+        {/* ── SEGUIMIENTO ── */}
+        {tab === "seguimiento" && (
+          <div className="fade-in">
+            <Seguimiento />
+          </div>
+        )}
+
       </div>
 
       {/* ── PRINT MODAL ── */}
