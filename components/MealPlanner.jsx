@@ -23,8 +23,6 @@ function localDateStr(date) {
   return `${y}-${m}-${d}`;
 }
 
-function todayLocalStr() { return localDateStr(new Date()); }
-
 function currentWeekDates() {
   const now = new Date();
   const day = now.getDay();
@@ -80,15 +78,10 @@ const S = {
   brownLight: "#f5f0e8",
 };
 
-function todayPlannerIdx() {
-  const day = new Date().getDay(); // 0=Sun
-  if (day === 0 || day === 6) return 0;
-  return day - 1; // Mon=0 … Fri=4
-}
 
 export default function MealPlanner() {
-  const plannerDay = todayPlannerIdx();
-  const [checked,        setChecked]        = useState({});
+  const [selectedStripIdx, setSelectedStripIdx] = useState(new Date().getDay()); // 0=Sun…6=Sat
+  const [checked,          setChecked]          = useState({});
   const [collapsedCats,  setCollapsedCats]  = useState(new Set());
   const [tab,            setTab]            = useState("planner");
   const [recipeModal,    setRecipeModal]    = useState(null); // { meal, recipe }
@@ -96,6 +89,18 @@ export default function MealPlanner() {
   const [homeAltForm,    setHomeAltForm]    = useState({ recipeName: "", ingredients: "", notes: "" });
   const [homeSaving,     setHomeSaving]     = useState(false);
   const [weekLogs,       setWeekLogs]       = useState({});
+
+  // Derived from selectedStripIdx
+  const plannerDay = (selectedStripIdx >= 1 && selectedStripIdx <= 5) ? selectedStripIdx - 1 : null;
+  const selectedDateStr = useMemo(() => {
+    const today = new Date();
+    const sunday = new Date(today);
+    sunday.setDate(today.getDate() - today.getDay());
+    sunday.setHours(0, 0, 0, 0);
+    const sel = new Date(sunday);
+    sel.setDate(sunday.getDate() + selectedStripIdx);
+    return localDateStr(sel);
+  }, [selectedStripIdx]);
 
   useEffect(() => {
     const dates = currentWeekDates();
@@ -122,7 +127,7 @@ export default function MealPlanner() {
     setHomeSaving(true);
     const { meal, recipe } = homeCheckin;
     const payload = {
-      date:        todayLocalStr(),
+      date:        selectedDateStr,
       meal,
       status,
       recipe_name: overrideRecipeName ?? (status === "plan" ? recipe?.name ?? null : (homeAltForm.recipeName || null)),
@@ -130,16 +135,16 @@ export default function MealPlanner() {
       notes:       homeAltForm.notes || null,
     };
     const { data: existing } = await supabase
-      .from("meal_logs").select("id").eq("date", todayLocalStr()).eq("meal", meal).maybeSingle();
+      .from("meal_logs").select("id").eq("date", selectedDateStr).eq("meal", meal).maybeSingle();
     if (existing?.id) {
       await supabase.from("meal_logs").update(payload).eq("id", existing.id);
     } else {
       await supabase.from("meal_logs").insert(payload);
     }
-    setWeekLogs(prev => {
-      const today = todayLocalStr();
-      return { ...prev, [today]: { ...(prev[today] || {}), [meal]: { ...payload, id: existing?.id ?? Date.now() } } };
-    });
+    setWeekLogs(prev => ({
+      ...prev,
+      [selectedDateStr]: { ...(prev[selectedDateStr] || {}), [meal]: { ...payload, id: existing?.id ?? Date.now() } },
+    }));
     setHomeSaving(false);
     setHomeCheckin(null);
     setHomeAltForm({ recipeName: "", ingredients: "", notes: "" });
@@ -231,40 +236,50 @@ export default function MealPlanner() {
             {/* Week strip */}
             {(() => {
               const today = new Date();
-              const dow = today.getDay(); // 0=Sun
+              const todayIdx = today.getDay();
               const sunday = new Date(today);
-              sunday.setDate(today.getDate() - dow);
+              sunday.setDate(today.getDate() - todayIdx);
               sunday.setHours(0, 0, 0, 0);
               const DAY_LETTERS = ["S","M","T","W","T","F","S"];
               const isWeekend = (i) => i === 0 || i === 6;
+              const ORANGE = "#f5a623";
               return (
                 <div style={{ display:"flex", justifyContent:"space-between", marginBottom:24 }}>
                   {Array.from({ length: 7 }, (_, i) => {
                     const d = new Date(sunday);
                     d.setDate(sunday.getDate() + i);
-                    const isToday = d.toDateString() === today.toDateString();
-                    const dateNum = d.getDate().toString().padStart(2, "0");
+                    const isSelected = i === selectedStripIdx;
+                    const isToday    = i === todayIdx;
+                    const dateNum    = d.getDate().toString().padStart(2, "0");
                     return (
-                      <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
+                      <div
+                        key={i}
+                        onClick={() => setSelectedStripIdx(i)}
+                        style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:4, cursor:"pointer" }}
+                      >
                         <div style={{
                           width:30, height:30, borderRadius:"50%",
                           display:"flex", alignItems:"center", justifyContent:"center",
-                          border: isToday ? "1.5px dashed #e57373" : "none",
-                          background: isToday ? "rgba(229,115,115,0.07)" : "transparent",
+                          border: isSelected ? `1.5px dashed ${ORANGE}` : "none",
+                          background: isSelected ? "rgba(245,166,35,0.08)" : "transparent",
                         }}>
                           <span style={{
-                            fontSize:12, fontWeight: isToday ? 700 : 500,
-                            color: isToday ? "#e57373" : isWeekend(i) ? "#c0b8a8" : S.brownMid,
+                            fontSize:12, fontWeight: isSelected ? 700 : 500,
+                            color: isSelected ? ORANGE : isWeekend(i) ? "#c0b8a8" : S.brownMid,
                           }}>
                             {DAY_LETTERS[i]}
                           </span>
                         </div>
                         <span style={{
-                          fontSize:11, fontWeight: isToday ? 700 : 400,
-                          color: isToday ? "#e57373" : isWeekend(i) ? "#c0b8a8" : S.brownMid,
+                          fontSize:11, fontWeight: isSelected ? 700 : 400,
+                          color: isSelected ? ORANGE : isWeekend(i) ? "#c0b8a8" : S.brownMid,
                         }}>
                           {dateNum}
                         </span>
+                        {/* today dot when not selected */}
+                        {isToday && !isSelected && (
+                          <div style={{ width:4, height:4, borderRadius:"50%", background: ORANGE, marginTop:-2 }} />
+                        )}
                       </div>
                     );
                   })}
@@ -319,7 +334,13 @@ export default function MealPlanner() {
               );
             })()}
 
-            {(() => {
+            {plannerDay === null ? (
+              <div style={{ textAlign:"center", padding:"40px 0", color:"#a09080" }}>
+                <HugeiconsIcon icon={Coffee04Icon} size={40} color="#c0b8a8" style={{ margin:"0 auto 12px", display:"block" }} />
+                <div style={{ fontSize:14, fontWeight:600, color: S.brownMid }}>Día de descanso</div>
+                <div style={{ fontSize:12, marginTop:4 }}>No hay plan para hoy.</div>
+              </div>
+            ) : (() => {
               const d = DAYS[plannerDay];
               return (
                 <>
@@ -362,15 +383,15 @@ export default function MealPlanner() {
                     {(["desayuno","almuerzo","merienda","cena"]
                       .slice()
                       .sort((a, b) => {
-                        const aLogged = !!weekLogs[todayLocalStr()]?.[a];
-                        const bLogged = !!weekLogs[todayLocalStr()]?.[b];
+                        const aLogged = !!weekLogs[selectedDateStr]?.[a];
+                        const bLogged = !!weekLogs[selectedDateStr]?.[b];
                         return aLogged - bLogged;
                       })
                     ).map(meal => {
                       const r = d[meal] ? RECIPES[d[meal]] : null;
                       const MealIc = MEAL_ICON[meal];
                       const label = meal.charAt(0).toUpperCase() + meal.slice(1);
-                      const isLogged = !!weekLogs[todayLocalStr()]?.[meal];
+                      const isLogged = !!weekLogs[selectedDateStr]?.[meal];
                       return (
                         <div key={meal} style={{
                           flexShrink:0, width:"calc(50% - 5px)", aspectRatio:"1",
