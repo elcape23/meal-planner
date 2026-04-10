@@ -180,20 +180,18 @@ export default function MealPlanner() {
   return (
     <div style={{ minHeight:"100vh", background: S.cream, fontFamily:"'Inter',sans-serif", color: S.brownDark }}>
 
-      {/* Header */}
-      <div style={{ background:"linear-gradient(155deg,#2c4a1e,#1a2e12)", padding:"12px 20px", position:"relative", overflow:"hidden" }}>
-        <div style={{ position:"absolute", top:-50, right:-50, width:200, height:200, borderRadius:"50%", background:"rgba(255,255,255,0.03)", pointerEvents:"none" }}/>
-        <div style={{ maxWidth:480, margin:"0 auto" }}>
-          <div style={{ fontSize:10, letterSpacing:"3px", color:"#8ab87a", textTransform:"uppercase" }}>Plan Nutricional</div>
-        </div>
-      </div>
-
-
       <div style={{ maxWidth:480, margin:"0 auto", padding:"20px 20px 90px" }}>
 
         {/* ── PLANNER ── */}
         {tab === "planner" && (
           <div className="fade-in">
+
+            {/* Greeting */}
+            <div style={{ marginBottom:24 }}>
+              <div style={{ fontSize:32, fontWeight:900, color: S.greenDark, lineHeight:1.1 }}>
+                Hola<br/>Juan José
+              </div>
+            </div>
 
             {/* Weekly progress card */}
             {(() => {
