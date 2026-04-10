@@ -17,7 +17,15 @@ const S = {
   red:        "#c0392b",
 };
 
-const STATUS = {
+const MEALS = [
+  { key: "desayuno",  label: "Desayuno",  icon: "☀️" },
+  { key: "almuerzo",  label: "Almuerzo",  icon: "🌿" },
+  { key: "merienda",  label: "Merienda",  icon: "🍵" },
+  { key: "cena",      label: "Cena",      icon: "🌙" },
+];
+
+// Meals that have a planned recipe from the plan
+const PLANNED_MEALS = ["almuerzo", "cena"];
   plan:        { label: "Seguí el plan",    icon: "✅", color: S.greenMid },
   alternative: { label: "Comí otra cosa",   icon: "🔄", color: S.yellow  },
   skipped:     { label: "No comí",          icon: "⏭️", color: "#a09080"  },
@@ -99,18 +107,18 @@ export default function Seguimiento() {
     if (!checkinDay) return;
     setSaving(true);
     const { date, dayIdx, meal } = checkinDay;
-    const planned = RECIPES[DAYS[dayIdx][meal]];
+    const isPlanned = PLANNED_MEALS.includes(meal);
+    const planned   = isPlanned ? RECIPES[DAYS[dayIdx][meal]] : null;
 
     const payload = {
       date,
       meal,
       status,
-      recipe_name:  status === "plan" ? planned.name : (altForm.recipeName || null),
+      recipe_name:  status === "plan" && planned ? planned.name : (altForm.recipeName || null),
       ingredients:  status === "alternative" ? altForm.ingredients : null,
       notes:        altForm.notes || null,
     };
 
-    // Upsert by date+meal
     const existing = logs[date]?.[meal];
     if (existing?.id) {
       await supabase.from("meal_logs").update(payload).eq("id", existing.id);
@@ -124,7 +132,7 @@ export default function Seguimiento() {
   };
 
   // ── Summary stats ──────────────────────────────────────────────────────────
-  const totalMeals    = weekDates.length * 2; // 5 days × 2 meals
+  const totalMeals    = weekDates.length * 4; // 5 days × 4 meals
   const loggedMeals   = weekDates.reduce((acc, d) => acc + Object.keys(logs[d] || {}).length, 0);
   const onPlan        = weekDates.reduce((acc, d) => acc + Object.values(logs[d] || {}).filter(l => l.status === "plan").length, 0);
   const alternative   = weekDates.reduce((acc, d) => acc + Object.values(logs[d] || {}).filter(l => l.status === "alternative").length, 0);
@@ -194,19 +202,19 @@ export default function Seguimiento() {
                 </div>
 
                 {/* Meals */}
-                {["almuerzo","cena"].map(meal => {
+                {MEALS.map(({ key: meal, label: mealLabel, icon }) => {
                   const log      = logs[date]?.[meal];
-                  const planned  = RECIPES[d[meal]];
-                  const icon     = meal === "almuerzo" ? "🌿" : "🌙";
+                  const isPlanned = PLANNED_MEALS.includes(meal);
+                  const planned  = isPlanned ? RECIPES[d[meal]] : null;
                   return (
                     <div key={meal} style={{ padding:"10px 14px", borderTop:`1px solid ${S.tan}` }}>
                       <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
                         <div style={{ flex:1 }}>
                           <div style={{ fontSize:10, letterSpacing:"1px", textTransform:"uppercase", color:"#a09080", marginBottom:3 }}>
-                            {icon} {meal}
+                            {icon} {mealLabel}
                           </div>
                           <div style={{ fontSize:12, color: S.brownDark, marginBottom: log ? 4 : 0 }}>
-                            {planned.name}
+                            {planned ? planned.name : <span style={{ fontStyle:"italic", color:"#a09080" }}>Sin plan específico</span>}
                           </div>
                           {log && (
                             <div style={{ display:"flex", alignItems:"center", gap:5, marginTop:4 }}>
@@ -333,10 +341,12 @@ export default function Seguimiento() {
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
               <div>
                 <div style={{ fontSize:10, letterSpacing:"2px", textTransform:"uppercase", color:"#a09080" }}>
-                  {DAYS[checkinDay.dayIdx].day} · {checkinDay.meal}
+                  {DAYS[checkinDay.dayIdx].day} · {MEALS.find(m => m.key === checkinDay.meal)?.label}
                 </div>
                 <div style={{ fontSize:14, fontWeight:700, color: S.brownDark, marginTop:2 }}>
-                  {RECIPES[DAYS[checkinDay.dayIdx][checkinDay.meal]].name}
+                  {PLANNED_MEALS.includes(checkinDay.meal)
+                    ? RECIPES[DAYS[checkinDay.dayIdx][checkinDay.meal]].name
+                    : "Registrar comida"}
                 </div>
               </div>
               <button onClick={() => setCheckinDay(null)} style={{ background:"none", border:"none", fontSize:20, color:"#a09080", cursor:"pointer" }}>✕</button>
