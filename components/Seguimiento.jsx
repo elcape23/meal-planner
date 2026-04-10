@@ -143,16 +143,16 @@ export default function Seguimiento() {
     loadLogs();
   };
 
-  // ── Summary stats ──────────────────────────────────────────────────────────
-  const loggedMeals   = weekDates.reduce((acc, d) => acc + Object.keys(logs[d] || {}).length, 0);
-  const onPlan        = weekDates.reduce((acc, d) => acc + Object.values(logs[d] || {}).filter(l => l.status === "plan").length, 0);
-  const alternative   = weekDates.reduce((acc, d) => acc + Object.values(logs[d] || {}).filter(l => l.status === "alternative").length, 0);
-  const skipped       = weekDates.reduce((acc, d) => acc + Object.values(logs[d] || {}).filter(l => l.status === "skipped").length, 0);
+  // ── Summary stats (almuerzo + cena only) ──────────────────────────────────
+  const plannedLogs   = (date) => PLANNED_MEALS.map(m => logs[date]?.[m]).filter(Boolean);
+  const loggedMeals   = weekDates.reduce((acc, d) => acc + plannedLogs(d).length, 0);
+  const onPlan        = weekDates.reduce((acc, d) => acc + plannedLogs(d).filter(l => l.status === "plan").length, 0);
+  const alternative   = weekDates.reduce((acc, d) => acc + plannedLogs(d).filter(l => l.status === "alternative").length, 0);
+  const skipped       = weekDates.reduce((acc, d) => acc + plannedLogs(d).filter(l => l.status === "skipped").length, 0);
   const adherencePct  = loggedMeals > 0 ? Math.round((onPlan / loggedMeals) * 100) : null;
 
   const dayStatus = (date) => {
-    const dayLogs = logs[date] || {};
-    const vals = Object.values(dayLogs);
+    const vals = plannedLogs(date);
     if (vals.length === 0) return "none";
     if (vals.every(l => l.status === "plan")) return "green";
     if (vals.some(l => l.status === "plan")) return "yellow";
@@ -342,7 +342,7 @@ export default function Seguimiento() {
                       transition:"background 0.3s",
                     }}/>
                     <div style={{ fontSize:9, color:"#a09080", marginTop:4 }}>
-                      {Object.keys(logs[date] || {}).length}/4
+                      {plannedLogs(date).length}/2
                     </div>
                   </div>
                 );
@@ -404,7 +404,7 @@ export default function Seguimiento() {
 
             {/* Status buttons */}
             <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:20 }}>
-              {Object.entries(STATUS).map(([key, { label, icon, color }]) => (
+              {Object.entries(STATUS).map(([key, { label, color }]) => (
                 <button key={key} onClick={() => key !== "alternative" && saveLog(key)} style={{
                   width:"100%", padding:"14px 16px",
                   background: "#fff", border:`1.5px solid ${S.tan}`,
