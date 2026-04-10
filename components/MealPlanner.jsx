@@ -27,7 +27,6 @@ function currentWeekDates() {
   });
 }
 
-const HEAT_COLOR = { green:"#3a6b28", yellow:"#f5a623", grey:"#c0b8a8", none:"#e8e0d0" };
 const PLANNED_MEALS = ["almuerzo", "cena"];
 
 const CHECKIN_STATUS = {
@@ -265,67 +264,36 @@ export default function MealPlanner() {
         {tab === "planner" && (
           <div className="fade-in">
 
-            {/* Weekly heatmap */}
+            {/* Weekly progress card */}
             {(() => {
-              const dates = currentWeekDates();
-              const today = todayLocalStr();
+              const dates   = currentWeekDates();
+              const daysOn  = dates.filter(d => dayStatus(d) === "green").length;
+              const partial = dates.filter(d => dayStatus(d) === "yellow").length;
+              const done    = daysOn + partial;
+              const total5  = 5;
+              const r = 28, circ = 2 * Math.PI * r;
+              const offset = circ * (1 - done / total5);
               return (
-                <div style={{ background:"#fff", border:`1.5px solid ${S.tan}`, borderRadius:14, padding:"14px 16px", marginBottom:20 }}>
-                  <div style={{ fontSize:10, letterSpacing:"2px", textTransform:"uppercase", color:"#a09080", marginBottom:12 }}>Resumen semanal</div>
-                  <div style={{ display:"flex", gap:6 }}>
-                    {dates.map((date, di) => {
-                      const status   = dayStatus(date);
-                      const isFuture = date > today;
-                      const isToday  = date === today;
-                      return (
-                        <div key={date} style={{ flex:1, textAlign:"center" }}>
-                          <div style={{ fontSize:10, fontWeight: isToday ? 700 : 400, color: isToday ? S.greenMid : "#a09080", marginBottom:5 }}>
-                            {DAYS[di].short}
-                          </div>
-                          <div style={{
-                            height:36, borderRadius:8,
-                            background: isFuture ? "#f0ebe3" : HEAT_COLOR[status],
-                            opacity: isFuture ? 0.35 : 1,
-                            transition:"background 0.3s",
-                            outline: isToday ? `2px solid ${S.greenMid}` : "none",
-                          }}/>
-                          <div style={{ fontSize:9, color:"#a09080", marginTop:4 }}>
-                            {plannedLogsForDate(date).length}/2
-                          </div>
-                        </div>
-                      );
-                    })}
+                <div style={{ background: S.greenLight, borderRadius:16, padding:"16px 18px", marginBottom:24, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                  <div>
+                    <div style={{ fontSize:10, letterSpacing:"2px", textTransform:"uppercase", color: S.greenMid, marginBottom:6 }}>Resumen semanal</div>
+                    <div style={{ fontSize:20, fontWeight:800, color: S.greenDark, lineHeight:1.2 }}>Tu progreso<br/>esta semana</div>
                   </div>
+                  <svg width={72} height={72} style={{ flexShrink:0 }}>
+                    <circle cx={36} cy={36} r={r} fill="none" stroke="#c8dfc0" strokeWidth={6}/>
+                    <circle cx={36} cy={36} r={r} fill="none" stroke={S.greenMid} strokeWidth={6}
+                      strokeLinecap="round"
+                      strokeDasharray={circ}
+                      strokeDashoffset={offset}
+                      transform="rotate(-90 36 36)"
+                      style={{ transition:"stroke-dashoffset 0.6s ease" }}
+                    />
+                    <text x={36} y={33} textAnchor="middle" fontSize={16} fontWeight={800} fill={S.greenDark}>{done}</text>
+                    <text x={36} y={46} textAnchor="middle" fontSize={9} fill={S.greenMid}>días</text>
+                  </svg>
                 </div>
               );
             })()}
-
-            {/* Day chips */}
-            <div style={{ display:"flex", gap:6, marginBottom:14 }}>
-              {DAYS.map((d, i) => {
-                const isToday    = i === todayPlannerIdx();
-                const isSelected = i === plannerDay;
-                return (
-                  <button key={i} onClick={() => setPlannerDay(i)} style={{
-                    flex:1, padding:"8px 4px", borderRadius:8, border:"none",
-                    background: isSelected ? S.greenMid : "#ede8df",
-                    color: isSelected ? "#fff" : S.brownMid,
-                    fontSize:10, fontFamily:"'Inter',sans-serif",
-                    fontWeight: isSelected ? 700 : 400,
-                    cursor:"pointer", position:"relative",
-                  }}>
-                    {d.short}
-                    {isToday && (
-                      <div style={{
-                        position:"absolute", bottom:3, left:"50%", transform:"translateX(-50%)",
-                        width:4, height:4, borderRadius:"50%",
-                        background: isSelected ? "#fff" : S.greenMid,
-                      }}/>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
 
             {(() => {
               const d = DAYS[plannerDay];
@@ -360,16 +328,13 @@ export default function MealPlanner() {
                   <div style={{ fontSize:16, fontWeight:700, color: S.brownDark, marginBottom:12 }}>
                     ¿Qué comiste hoy?
                   </div>
-                  <div style={{
-                    display:"flex", gap:10, overflowX:"auto", paddingBottom:4,
-                    scrollSnapType:"x mandatory", msOverflowStyle:"none", scrollbarWidth:"none",
-                  }}>
+                  <div style={{ display:"flex", gap:10 }}>
                     {["almuerzo","cena"].map(meal => {
                       const r = RECIPES[d[meal]];
                       return (
                         <div key={meal} style={{
-                          flexShrink:0, width:"65%", aspectRatio:"1",
-                          scrollSnapAlign:"start", background:"#fff",
+                          flex:1, aspectRatio:"1",
+                          background:"#fff",
                           border:`1.5px solid #e8e2d8`, borderRadius:16,
                           padding:14, display:"flex", flexDirection:"column",
                           justifyContent:"space-between",
@@ -573,21 +538,6 @@ export default function MealPlanner() {
         )}
 
       </div>
-
-      {/* ── SEGUIMIENTO FIXED BUTTON ── */}
-      {tab === "planner" && (
-        <div style={{ position:"fixed", bottom:0, left:0, right:0, padding:"12px 20px 24px", background:"linear-gradient(to top, #faf7f2 70%, transparent)", pointerEvents:"none" }}>
-          <button onClick={() => setTab("seguimiento")} style={{
-            width:"100%", maxWidth:480, display:"block", margin:"0 auto",
-            padding:"13px", background:`linear-gradient(135deg,${S.greenMid},#2c5020)`,
-            color:"#fff", border:"none", borderRadius:10,
-            fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:700,
-            cursor:"pointer", pointerEvents:"all",
-          }}>
-            📈 Ver seguimiento →
-          </button>
-        </div>
-      )}
 
       {/* ── HOME CHECK-IN MODAL ── */}
       {homeCheckin && (
