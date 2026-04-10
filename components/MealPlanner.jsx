@@ -216,11 +216,30 @@ export default function MealPlanner() {
               const total5  = 5;
               const r = 28, circ = 2 * Math.PI * r;
               const offset = circ * (1 - done / total5);
+
+              const allLogs = Object.values(weekLogs).flatMap(day => Object.values(day));
+              const onPlan  = allLogs.filter(l => l.status === "plan").length;
+              const altMeals = allLogs.filter(l => l.status === "alternative").length;
+
               return (
                 <div style={{ background: S.greenLight, borderRadius:16, padding:"16px 18px", marginBottom:24, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
                   <div>
                     <div style={{ fontSize:10, letterSpacing:"2px", textTransform:"uppercase", color: S.greenMid, marginBottom:6 }}>Resumen semanal</div>
-                    <div style={{ fontSize:20, fontWeight:800, color: S.greenDark, lineHeight:1.2 }}>Tu progreso<br/>esta semana</div>
+                    <div style={{ fontSize:20, fontWeight:800, color: S.greenDark, lineHeight:1.2, marginBottom:14 }}>Tu progreso<br/>esta semana</div>
+                    <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+                        <div style={{ width:8, height:8, borderRadius:"50%", background: S.greenMid, flexShrink:0 }}/>
+                        <span style={{ fontSize:12, color: S.greenDark }}>
+                          <strong>{onPlan}</strong> comidas en plan
+                        </span>
+                      </div>
+                      <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+                        <div style={{ width:8, height:8, borderRadius:"50%", background:"#f5a623", flexShrink:0 }}/>
+                        <span style={{ fontSize:12, color: S.brownMid }}>
+                          <strong>{altMeals}</strong> fuera del plan
+                        </span>
+                      </div>
+                    </div>
                   </div>
                   <svg width={72} height={72} style={{ flexShrink:0 }}>
                     <circle cx={36} cy={36} r={r} fill="none" stroke="#c8dfc0" strokeWidth={6}/>
