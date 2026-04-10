@@ -282,6 +282,7 @@ export default function MealPlanner() {
                       const r = d[meal] ? RECIPES[d[meal]] : null;
                       const emoji = r ? r.emoji : MEAL_EMOJI[meal];
                       const label = r ? r.name : meal.charAt(0).toUpperCase() + meal.slice(1);
+                      const isLogged = !!weekLogs[todayLocalStr()]?.[meal];
                       return (
                         <div key={meal} style={{
                           flexShrink:0, width:"calc(50% - 5px)", aspectRatio:"1",
@@ -300,10 +301,19 @@ export default function MealPlanner() {
                             onClick={() => { setHomeAltForm({ recipeName:"", ingredients:"", notes:"" }); setHomeCheckin({ meal, recipe: r }); }}
                             style={{
                               width:"100%", padding:"9px 0", borderRadius:8, border:"none",
-                              background: S.greenMid, color:"#fff",
+                              background: isLogged ? S.tan : S.greenMid,
+                              color: isLogged ? "#6a5a3a" : "#fff",
                               fontSize:12, fontWeight:600, cursor:"pointer",
+                              display:"flex", alignItems:"center", justifyContent:"center", gap:5,
                             }}>
-                            Registrar
+                            {isLogged ? (
+                              <>
+                                <svg xmlns="http://www.w3.org/2000/svg" width={13} height={13} viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+                                </svg>
+                                Registrado
+                              </>
+                            ) : "Registrar"}
                           </button>
                         </div>
                       );
