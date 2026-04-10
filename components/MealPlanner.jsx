@@ -722,7 +722,7 @@ export default function MealPlanner() {
             boxShadow:"0 -4px 20px rgba(0,0,0,0.08)",
             display:"flex", justifyContent:"center",
           }}>
-            <div style={{ width:"100%", maxWidth:480, display:"flex", alignItems:"center", padding:"20px 8px" }}>
+            <div style={{ width:"100%", maxWidth:480, display:"flex", alignItems:"center", padding:"0 8px", marginBottom:20 }}>
               {NAV.map(({ id, label, Icon, center }) => {
                 const active = tab === id;
                 if (center) return (
