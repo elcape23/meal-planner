@@ -4,14 +4,17 @@ import { useState, useMemo, useEffect } from "react";
 import { RECIPES, DAYS, CATEGORIES, fmt, getCat } from "@/lib/data";
 import Seguimiento from "@/components/Seguimiento";
 import { supabase } from "@/lib/supabase";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  HomeIcon, BookOpenIcon, ShoppingCartIcon,
-  ClipboardDocumentListIcon, UserIcon,
-  SunIcon, MoonIcon, SparklesIcon, FireIcon,
-  XMarkIcon, MagnifyingGlassIcon,
-  LeafIcon, BeakerIcon, EyeDropperIcon, CubeIcon,
-  DocumentArrowDownIcon, ArrowDownTrayIcon,
-} from "@heroicons/react/24/solid";
+  Home01Icon, BookOpen01Icon, ShoppingCart01Icon,
+  Task01Icon, UserIcon,
+  Coffee04Icon, Dish02Icon,
+  Search01Icon, Cancel01Icon,
+  Leaf01Icon, MilkCartonIcon, ForkIcon, WheatIcon, NutIcon, OilBarrelIcon,
+  FileDownloadIcon, Download01Icon,
+  CheckmarkCircle01Icon,
+  Moon01Icon, Sun01Icon,
+} from "@hugeicons/core-free-icons";
 
 function localDateStr(date) {
   const y = date.getFullYear();
@@ -44,19 +47,19 @@ const MEAL_CATEGORY = {
 };
 
 const MEAL_ICON = {
-  desayuno: SunIcon,
-  almuerzo: FireIcon,
-  merienda: SparklesIcon,
-  cena:     MoonIcon,
+  desayuno: Coffee04Icon,
+  almuerzo: Dish02Icon,
+  merienda: Coffee04Icon,
+  cena:     Dish02Icon,
 };
 
 const CAT_ICON_COMP = {
-  "Proteínas":             FireIcon,
-  "Lácteos y quesos":      BeakerIcon,
-  "Verduras y hojas":      LeafIcon,
-  "Cereales":              CubeIcon,
-  "Aceites y condimentos": EyeDropperIcon,
-  "Frutos secos":          SparklesIcon,
+  "Proteínas":             ForkIcon,
+  "Lácteos y quesos":      MilkCartonIcon,
+  "Verduras y hojas":      Leaf01Icon,
+  "Cereales":              WheatIcon,
+  "Aceites y condimentos": OilBarrelIcon,
+  "Frutos secos":          NutIcon,
 };
 
 const CHECKIN_STATUS = {
@@ -292,7 +295,7 @@ export default function MealPlanner() {
                           alignItems:"center", justifyContent:"center",
                           gap:10, cursor:"pointer", padding:12,
                         }}>
-                          <MealIc style={{ width:36, height:36, color: S.greenMid }} />
+                          <HugeiconsIcon icon={MealIc} size={36} color={S.greenMid} />
                           <div style={{ textAlign:"center" }}>
                             <div style={{ fontSize:9, letterSpacing:"1.5px", textTransform:"uppercase", color:"#8a7a5a", marginBottom:4 }}>{meal}</div>
                             <div style={{ fontSize:12, fontWeight:600, color: S.brownDark, lineHeight:1.3 }}>{r.name}</div>
@@ -334,7 +337,7 @@ export default function MealPlanner() {
                           justifyContent:"space-between",
                         }}>
                           <div>
-                            <MealIc style={{ width:28, height:28, color: isLogged ? "#a09080" : S.greenMid }} />
+                            <HugeiconsIcon icon={MealIc} size={28} color={isLogged ? "#a09080" : S.greenMid} />
                             <div style={{ fontSize:13, fontWeight:700, color: S.brownDark, margin:"8px 0 2px" }}>{label}</div>
                             {r && (
                               <div style={{ fontSize:10, color:"#8a7a5a", lineHeight:1.3 }}>{r.name}</div>
@@ -351,9 +354,7 @@ export default function MealPlanner() {
                             }}>
                             {isLogged ? (
                               <>
-                                <svg xmlns="http://www.w3.org/2000/svg" width={13} height={13} viewBox="0 0 20 20" fill="currentColor">
-                                  <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
-                                </svg>
+                                <HugeiconsIcon icon={CheckmarkCircle01Icon} size={14} color="#6a5a3a" />
                                 Registrado
                               </>
                             ) : "Registrar"}
@@ -374,7 +375,7 @@ export default function MealPlanner() {
           <div className="fade-in">
             {shoppingList.length === 0 ? (
               <div style={{ textAlign:"center", padding:"50px 0", color:"#8a7a5a" }}>
-                <LeafIcon style={{ width:40, height:40, color:"#a09080", margin:"0 auto 12px", display:"block" }} />
+                <HugeiconsIcon icon={Leaf01Icon} size={40} color="#a09080" style={{ margin:"0 auto 12px", display:"block" }} />
                 <p style={{ fontStyle:"italic" }}>Seleccioná días en la pestaña Semana.</p>
               </div>
             ) : (
@@ -421,7 +422,7 @@ export default function MealPlanner() {
                   return (
                     <div key={cat} style={{ marginBottom:12, background:"#fff", border:`1.5px solid #e8e2d8`, borderRadius:12, overflow:"hidden" }}>
                       <div onClick={toggleCat} style={{ display:"flex", alignItems:"center", gap:7, padding:"12px 14px", cursor:"pointer" }}>
-                        {(() => { const CatIc = CAT_ICON_COMP[cat]; return CatIc ? <CatIc style={{ width:16, height:16, color: S.brownMid, flexShrink:0 }} /> : null; })()}
+                        {(() => { const catIc = CAT_ICON_COMP[cat]; return catIc ? <HugeiconsIcon icon={catIc} size={16} color={S.brownMid} /> : null; })()}
                         <span style={{ fontSize:10, letterSpacing:"2px", textTransform:"uppercase", color: S.brownMid, fontWeight:600 }}>{cat}</span>
                         <span style={{ marginLeft:"auto", fontSize:10, color:"#a09080", marginRight:6 }}>{catChecked > 0 ? `${catChecked}/${items.length}` : items.length}</span>
                         <span style={{ fontSize:12, color:"#a09080", transform: collapsed ? "none" : "rotate(180deg)", transition:"transform 0.2s" }}>▾</span>
@@ -471,7 +472,7 @@ export default function MealPlanner() {
                 fontSize:15, fontFamily:"'Inter',sans-serif", fontWeight:700, cursor:"pointer",
                 display:"flex", alignItems:"center", justifyContent:"center", gap:8,
               }}>
-                <DocumentArrowDownIcon style={{ width:18, height:18 }} />
+                <HugeiconsIcon icon={FileDownloadIcon} size={18} color="#fff" />
                 Exportar recetas (semana completa)
               </button>
             </div>
@@ -500,14 +501,14 @@ export default function MealPlanner() {
 
             {/* Search bar */}
             <div style={{ position:"relative", marginBottom:16 }}>
-              <MagnifyingGlassIcon style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", width:16, height:16, color:"#a09080", pointerEvents:"none" }} />
+              <HugeiconsIcon icon={Search01Icon} size={16} color="#a09080" style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }} />
               <input
                 value={recipeSearch}
                 onChange={e => setRecipeSearch(e.target.value)}
                 placeholder="Buscar receta..."
                 style={{
                   width:"100%", padding:"10px 12px 10px 36px", borderRadius:10,
-                  border:`1.5px solid ${S.tan}`, fontSize:13,
+                  border:`1.5px solid ${S.tan}`, fontSize:16,
                   fontFamily:"'Inter',sans-serif", background:"#fff",
                   color: S.brownDark, outline:"none", boxSizing:"border-box",
                 }}
@@ -520,12 +521,12 @@ export default function MealPlanner() {
                 .filter(([, r]) => !recipeSearch || r.name.toLowerCase().includes(recipeSearch.toLowerCase()))
                 .map(([key, recipe]) => {
                 const open = expandedRecipe === key;
-                const RecIc = recipe.category === "almuerzo_cena" ? FireIcon : SunIcon;
+                const recIc = recipe.category === "almuerzo_cena" ? Dish02Icon : Coffee04Icon;
                 return (
                   <div key={key} style={{ background:"#fff", border:`1.5px solid #e8e2d8`, borderRadius:12, overflow:"hidden" }}>
                     <div onClick={() => setExpandedRecipe(open ? null : key)}
                       style={{ padding:"13px 15px", display:"flex", alignItems:"center", gap:11, cursor:"pointer" }}>
-                      <RecIc style={{ width:22, height:22, color: S.greenMid, flexShrink:0 }} />
+                      <HugeiconsIcon icon={recIc} size={22} color={S.greenMid} />
                       <div style={{ flex:1 }}>
                         <div style={{ fontSize:13, fontWeight:600, color: S.brownDark, lineHeight:1.3 }}>{recipe.name}</div>
                       </div>
@@ -557,7 +558,7 @@ export default function MealPlanner() {
 
         {tab === "cuenta" && (
           <div className="fade-in" style={{ textAlign:"center", padding:"60px 0", color:"#a09080" }}>
-            <UserIcon style={{ width:48, height:48, color:"#c0b8a8", margin:"0 auto 16px" }} />
+            <HugeiconsIcon icon={UserIcon} size={48} color="#c0b8a8" style={{ margin:"0 auto 16px", display:"block" }} />
             <div style={{ fontSize:16, fontWeight:600, color: S.brownMid }}>Próximamente</div>
             <div style={{ fontSize:13, marginTop:6 }}>La sección de cuenta estará disponible pronto.</div>
           </div>
@@ -579,18 +580,16 @@ export default function MealPlanner() {
               <button onClick={() => setHomeCheckin(null)} style={{
                 position:"absolute", right:0, top:"50%", transform:"translateY(-50%)",
                 background:"none", border:"none", cursor:"pointer", padding:4,
-                color:"#a09080", display:"flex", alignItems:"center",
+                display:"flex", alignItems:"center",
               }}>
-                <XMarkIcon style={{ width:20, height:20 }} />
+                <HugeiconsIcon icon={Cancel01Icon} size={20} color="#a09080" />
               </button>
             </div>
             {/* Header */}
             <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
-              {(() => { const Ic = MEAL_ICON[homeCheckin.meal]; return (
-                <div style={{ width:48, height:48, borderRadius:12, background: S.greenLight, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                  <Ic style={{ width:24, height:24, color: S.greenMid }} />
-                </div>
-              ); })()}
+              <div style={{ width:48, height:48, borderRadius:12, background: S.greenLight, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                <HugeiconsIcon icon={MEAL_ICON[homeCheckin.meal]} size={24} color={S.greenMid} />
+              </div>
               <div>
                 <div style={{ fontSize:9, letterSpacing:"1.5px", textTransform:"uppercase", color:"#8a7a5a", marginBottom:3 }}>{homeCheckin.meal}</div>
                 <div style={{ fontSize:15, fontWeight:700, color: S.brownDark }}>
@@ -636,7 +635,7 @@ export default function MealPlanner() {
                           display:"flex", alignItems:"center", gap:12,
                           cursor:"pointer", opacity: homeSaving ? 0.6 : 1, textAlign:"left",
                         }}>
-                        <SunIcon style={{ width:20, height:20, color: S.greenMid, flexShrink:0 }} />
+                        <HugeiconsIcon icon={Coffee04Icon} size={20} color={S.greenMid} />
                         <span style={{ fontSize:13, fontWeight:600, color: S.brownDark }}>{rec.name}</span>
                       </button>
                     ))
@@ -709,18 +708,16 @@ export default function MealPlanner() {
               <button onClick={() => setRecipeModal(null)} style={{
                 position:"absolute", right:0, top:"50%", transform:"translateY(-50%)",
                 background:"none", border:"none", cursor:"pointer", padding:4,
-                color:"#a09080", display:"flex", alignItems:"center",
+                display:"flex", alignItems:"center",
               }}>
-                <XMarkIcon style={{ width:20, height:20 }} />
+                <HugeiconsIcon icon={Cancel01Icon} size={20} color="#a09080" />
               </button>
             </div>
             {/* Header */}
             <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:20 }}>
-              {(() => { const Ic = MEAL_ICON[recipeModal.meal] ?? FireIcon; return (
-                <div style={{ width:52, height:52, borderRadius:12, background: S.greenLight, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                  <Ic style={{ width:28, height:28, color: S.greenMid }} />
-                </div>
-              ); })()}
+              <div style={{ width:52, height:52, borderRadius:12, background: S.greenLight, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                <HugeiconsIcon icon={MEAL_ICON[recipeModal.meal] ?? Dish02Icon} size={28} color={S.greenMid} />
+              </div>
               <div>
                 <div style={{ fontSize:10, letterSpacing:"1.5px", textTransform:"uppercase", color:"#8a7a5a", marginBottom:4 }}>{recipeModal.meal}</div>
                 <div style={{ fontSize:16, fontWeight:700, color: S.brownDark, lineHeight:1.3 }}>{recipeModal.recipe.name}</div>
@@ -752,7 +749,9 @@ export default function MealPlanner() {
                 {DAYS.map(d => d.day).join(", ")}
               </div>
             </div>
-            <button onClick={() => setPrintModal(false)} style={{ background:"rgba(255,255,255,0.15)", border:"none", color:"#fff", width:34, height:34, borderRadius:"50%", fontSize:16, cursor:"pointer" }}>✕</button>
+            <button onClick={() => setPrintModal(false)} style={{ background:"rgba(255,255,255,0.15)", border:"none", width:34, height:34, borderRadius:"50%", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <HugeiconsIcon icon={Cancel01Icon} size={18} color="#fff" />
+            </button>
           </div>
 
           <div style={{ flex:1, overflowY:"auto", background: S.cream, padding:"20px 20px 120px" }}>
@@ -791,7 +790,7 @@ export default function MealPlanner() {
               fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:700, cursor: exporting ? "not-allowed" : "pointer",
             }}>
               {exporting ? "Generando PDF..." : (
-              <><ArrowDownTrayIcon style={{ width:16, height:16, display:"inline", verticalAlign:"middle", marginRight:6 }} />Descargar PDF</>
+              <><HugeiconsIcon icon={Download01Icon} size={16} color="#fff" style={{ display:"inline", verticalAlign:"middle", marginRight:6 }} />Descargar PDF</>
             )}
             </button>
           </div>
@@ -800,11 +799,11 @@ export default function MealPlanner() {
       {/* ── BOTTOM NAVBAR ── */}
       {(() => {
         const NAV = [
-          { id:"recetas",     label:"Recetas",  Icon: BookOpenIcon },
-          { id:"lista",       label:"Lista",    Icon: ShoppingCartIcon },
-          { id:"planner",     label:"Inicio",   Icon: HomeIcon, center: true },
-          { id:"seguimiento", label:"Registro", Icon: ClipboardDocumentListIcon },
-          { id:"cuenta",      label:"Cuenta",   Icon: UserIcon },
+          { id:"recetas",     label:"Recetas",  icon: BookOpen01Icon },
+          { id:"lista",       label:"Lista",    icon: ShoppingCart01Icon },
+          { id:"planner",     label:"Inicio",   icon: Home01Icon, center: true },
+          { id:"seguimiento", label:"Registro", icon: Task01Icon },
+          { id:"cuenta",      label:"Cuenta",   icon: UserIcon },
         ];
         return (
           <div style={{
@@ -814,7 +813,7 @@ export default function MealPlanner() {
             display:"flex", justifyContent:"center",
           }}>
             <div style={{ width:"100%", maxWidth:480, display:"flex", alignItems:"center", padding:"0 8px", marginBottom:20 }}>
-              {NAV.map(({ id, label, Icon, center }) => {
+              {NAV.map(({ id, label, icon, center }) => {
                 const active = tab === id;
                 if (center) return (
                   <div key={id} style={{ flex:1, display:"flex", justifyContent:"center", alignItems:"center" }}>
@@ -828,7 +827,7 @@ export default function MealPlanner() {
                       boxShadow: active ? "0 4px 16px rgba(58,107,40,0.4)" : "0 2px 8px rgba(58,107,40,0.15)",
                       transition:"background 0.2s, box-shadow 0.2s",
                     }}>
-                      <Icon style={{ width:26, height:26, color: active ? "#fff" : S.greenMid }} />
+                      <HugeiconsIcon icon={icon} size={26} color={active ? "#fff" : S.greenMid} />
                     </button>
                   </div>
                 );
@@ -839,7 +838,7 @@ export default function MealPlanner() {
                     gap:3, padding:"10px 0 8px", border:"none", background:"none",
                     cursor:"pointer",
                   }}>
-                    <Icon style={{ width:22, height:22, color: active ? S.greenMid : "#b0a898" }} />
+                    <HugeiconsIcon icon={icon} size={22} color={active ? S.greenMid : "#b0a898"} />
                     <span style={{ fontSize:10, fontWeight: active ? 700 : 500, color: active ? S.greenMid : "#b0a898", fontFamily:"'Inter',sans-serif" }}>
                       {label}
                     </span>
