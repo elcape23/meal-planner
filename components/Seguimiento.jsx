@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { DAYS, RECIPES, fmt } from "@/lib/data";
+import { DAYS, RECIPES } from "@/lib/data";
 
 const S = {
   greenDark:  "#2c4a1e",
@@ -44,7 +44,10 @@ function getWeekStart(offset = 0) {
 }
 
 function dateStr(date) {
-  return date.toISOString().split("T")[0];
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 function getWeekDates(weekStart) {
@@ -141,7 +144,6 @@ export default function Seguimiento() {
   };
 
   // ── Summary stats ──────────────────────────────────────────────────────────
-  const totalMeals    = weekDates.length * 4; // 5 days × 4 meals
   const loggedMeals   = weekDates.reduce((acc, d) => acc + Object.keys(logs[d] || {}).length, 0);
   const onPlan        = weekDates.reduce((acc, d) => acc + Object.values(logs[d] || {}).filter(l => l.status === "plan").length, 0);
   const alternative   = weekDates.reduce((acc, d) => acc + Object.values(logs[d] || {}).filter(l => l.status === "alternative").length, 0);
@@ -250,7 +252,7 @@ export default function Seguimiento() {
                 </div>
 
                 {/* Meals */}
-                {MEALS.map(({ key: meal, label: mealLabel, icon }) => {
+                {MEALS.map(({ key: meal, label: mealLabel }) => {
                   const log       = logs[date]?.[meal];
                   const isPlanned = PLANNED_MEALS.includes(meal);
                   const planned   = isPlanned ? RECIPES[d[meal]] : null;
