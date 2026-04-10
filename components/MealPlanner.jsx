@@ -28,6 +28,7 @@ export default function MealPlanner() {
   const [tab,            setTab]            = useState("planner");
   const [ingredientsOpen, setIngredientsOpen] = useState(null);
   const [expandedRecipe, setExpandedRecipe] = useState(null);
+  const [recipeCat,      setRecipeCat]      = useState("almuerzo_cena");
   const [printModal,     setPrintModal]     = useState(false);
   const [exporting,      setExporting]      = useState(false);
 
@@ -308,56 +309,63 @@ export default function MealPlanner() {
         {/* ── RECETAS ── */}
         {tab === "recetas" && (
           <div className="fade-in">
+            {/* Category chips */}
+            <div style={{ display:"flex", gap:6, marginBottom:16 }}>
+              {[
+                { cat: "almuerzo_cena",     label: "Almuerzo / Cena"     },
+                { cat: "desayuno_merienda", label: "Desayuno / Merienda" },
+              ].map(({ cat, label }) => (
+                <button key={cat} onClick={() => { setRecipeCat(cat); setExpandedRecipe(null); }} style={{
+                  flex:1, padding:"9px 8px", borderRadius:8, border:"none",
+                  background: recipeCat === cat ? S.greenMid : "#ede8df",
+                  color: recipeCat === cat ? "#fff" : "#8a7a5a",
+                  fontSize:12, fontFamily:"Lora,serif",
+                  fontWeight: recipeCat === cat ? 600 : 400,
+                  cursor:"pointer",
+                }}>{label}</button>
+              ))}
+            </div>
+
             {[
               { cat: "almuerzo_cena",      label: "Almuerzo / Cena"      },
               { cat: "desayuno_merienda",  label: "Desayuno / Merienda"  },
-            ].map(({ cat, label }) => {
-              const entries = Object.entries(RECIPES).filter(([, r]) => r.category === cat);
-              return (
-                <div key={cat} style={{ marginBottom:22 }}>
-                  <div style={{ fontSize:10, letterSpacing:"2px", textTransform:"uppercase", color: S.brownMid, fontWeight:600, marginBottom:10 }}>
-                    {label}
-                  </div>
-                  <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                    {entries.map(([key, recipe]) => {
-                      const open   = expandedRecipe === key;
-                      const usedIn = DAYS.flatMap(d => {
-                        const r = [];
-                        if (d.almuerzo === key) r.push(`${d.day} (almuerzo)`);
-                        if (d.cena     === key) r.push(`${d.day} (cena)`);
-                        return r;
-                      });
-                      return (
-                        <div key={key} style={{ background:"#fff", border:`1.5px solid #e8e2d8`, borderRadius:12, overflow:"hidden" }}>
-                          <div onClick={() => setExpandedRecipe(open ? null : key)}
-                            style={{ padding:"13px 15px", display:"flex", alignItems:"center", gap:11, cursor:"pointer" }}>
-                            <span style={{ fontSize:22 }}>{recipe.emoji}</span>
-                            <div style={{ flex:1 }}>
-                              <div style={{ fontSize:13, fontWeight:600, color: S.brownDark, lineHeight:1.3 }}>{recipe.name}</div>
-                              {usedIn.length > 0 && (
-                                <div style={{ fontSize:11, color:"#8a7a5a", marginTop:2 }}>{usedIn.join(" · ")}</div>
-                              )}
-                            </div>
-                            <span style={{ fontSize:13, color:"#a09080", display:"block", transform: open ? "rotate(180deg)" : "none", transition:"transform 0.2s" }}>▾</span>
+            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+              {Object.entries(RECIPES).filter(([, r]) => r.category === recipeCat).map(([key, recipe]) => {
+                const open   = expandedRecipe === key;
+                const usedIn = DAYS.flatMap(d => {
+                  const r = [];
+                  if (d.almuerzo === key) r.push(`${d.day} (almuerzo)`);
+                  if (d.cena     === key) r.push(`${d.day} (cena)`);
+                  return r;
+                });
+                return (
+                  <div key={key} style={{ background:"#fff", border:`1.5px solid #e8e2d8`, borderRadius:12, overflow:"hidden" }}>
+                    <div onClick={() => setExpandedRecipe(open ? null : key)}
+                      style={{ padding:"13px 15px", display:"flex", alignItems:"center", gap:11, cursor:"pointer" }}>
+                      <span style={{ fontSize:22 }}>{recipe.emoji}</span>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:13, fontWeight:600, color: S.brownDark, lineHeight:1.3 }}>{recipe.name}</div>
+                        {usedIn.length > 0 && (
+                          <div style={{ fontSize:11, color:"#8a7a5a", marginTop:2 }}>{usedIn.join(" · ")}</div>
+                        )}
+                      </div>
+                      <span style={{ fontSize:13, color:"#a09080", display:"block", transform: open ? "rotate(180deg)" : "none", transition:"transform 0.2s" }}>▾</span>
+                    </div>
+                    {open && (
+                      <div style={{ borderTop:`1px solid ${S.brownLight}`, padding:"12px 15px", background:"#fcfaf7" }}>
+                        {recipe.note && <div style={{ fontSize:11, color:"#8a7a5a", fontStyle:"italic", marginBottom:8 }}>* {recipe.note}</div>}
+                        {recipe.ingredients.map(ing => (
+                          <div key={ing.name} style={{ display:"flex", justifyContent:"space-between", padding:"5px 0", fontSize:12, borderBottom:`1px solid ${S.brownLight}`, color: S.brownDark }}>
+                            <span>{ing.name}</span>
+                            <span style={{ fontWeight:600, color: S.greenMid }}>{fmt(ing.amount, ing.unit)}</span>
                           </div>
-                          {open && (
-                            <div style={{ borderTop:`1px solid ${S.brownLight}`, padding:"12px 15px", background:"#fcfaf7" }}>
-                              {recipe.note && <div style={{ fontSize:11, color:"#8a7a5a", fontStyle:"italic", marginBottom:8 }}>* {recipe.note}</div>}
-                              {recipe.ingredients.map(ing => (
-                                <div key={ing.name} style={{ display:"flex", justifyContent:"space-between", padding:"5px 0", fontSize:12, borderBottom:`1px solid ${S.brownLight}`, color: S.brownDark }}>
-                                  <span>{ing.name}</span>
-                                  <span style={{ fontWeight:600, color: S.greenMid }}>{fmt(ing.amount, ing.unit)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
         {/* ── SEGUIMIENTO ── */}
