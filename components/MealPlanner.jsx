@@ -1,12 +1,16 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { RECIPES, DAYS, CATEGORIES, CAT_ICONS, fmt, getCat } from "@/lib/data";
+import { RECIPES, DAYS, CATEGORIES, fmt, getCat } from "@/lib/data";
 import Seguimiento from "@/components/Seguimiento";
 import { supabase } from "@/lib/supabase";
 import {
   HomeIcon, BookOpenIcon, ShoppingCartIcon,
   ClipboardDocumentListIcon, UserIcon,
+  SunIcon, MoonIcon, SparklesIcon, FireIcon,
+  XMarkIcon, MagnifyingGlassIcon,
+  LeafIcon, BeakerIcon, EyeDropperIcon, CubeIcon,
+  DocumentArrowDownIcon, ArrowDownTrayIcon,
 } from "@heroicons/react/24/solid";
 
 function localDateStr(date) {
@@ -39,7 +43,21 @@ const MEAL_CATEGORY = {
   cena:     "almuerzo_cena",
 };
 
-const MEAL_EMOJI = { desayuno: "☕", merienda: "🍎" };
+const MEAL_ICON = {
+  desayuno: SunIcon,
+  almuerzo: FireIcon,
+  merienda: SparklesIcon,
+  cena:     MoonIcon,
+};
+
+const CAT_ICON_COMP = {
+  "Proteínas":             FireIcon,
+  "Lácteos y quesos":      BeakerIcon,
+  "Verduras y hojas":      LeafIcon,
+  "Cereales":              CubeIcon,
+  "Aceites y condimentos": EyeDropperIcon,
+  "Frutos secos":          SparklesIcon,
+};
 
 const CHECKIN_STATUS = {
   plan:        { label: "Seguí el plan",  color: "#3a6b28" },
@@ -91,6 +109,7 @@ export default function MealPlanner() {
 
   const [expandedRecipe, setExpandedRecipe] = useState(null);
   const [recipeCat,      setRecipeCat]      = useState("almuerzo_cena");
+  const [recipeSearch,   setRecipeSearch]   = useState("");
   const [printModal,     setPrintModal]     = useState(false);
   const [exporting,      setExporting]      = useState(false);
   const toggleCheck = (n) => setChecked(p => ({ ...p, [n]: !p[n] }));
@@ -114,6 +133,10 @@ export default function MealPlanner() {
     } else {
       await supabase.from("meal_logs").insert(payload);
     }
+    setWeekLogs(prev => {
+      const today = todayLocalStr();
+      return { ...prev, [today]: { ...(prev[today] || {}), [meal]: { ...payload, id: existing?.id ?? Date.now() } } };
+    });
     setHomeSaving(false);
     setHomeCheckin(null);
     setHomeAltForm({ recipeName: "", ingredients: "", notes: "" });
@@ -191,14 +214,15 @@ export default function MealPlanner() {
               <div style={{ fontSize:32, fontWeight:900, color: S.greenDark, lineHeight:1.1 }}>
                 Hola<br/>Juan José
               </div>
-              <div style={{
+              <button onClick={() => setTab("cuenta")} style={{
                 width:44, height:44, borderRadius:"50%",
                 background: S.greenMid, color:"#fff",
                 display:"flex", alignItems:"center", justifyContent:"center",
                 fontSize:14, fontWeight:700, flexShrink:0, marginTop:4,
+                border:"none", cursor:"pointer",
               }}>
                 JJ
-              </div>
+              </button>
             </div>
 
             {/* Weekly progress card */}
@@ -259,6 +283,7 @@ export default function MealPlanner() {
                   <div style={{ display:"flex", gap:10, marginBottom:28 }}>
                     {["almuerzo","cena"].map(meal => {
                       const r = RECIPES[d[meal]];
+                      const MealIc = MEAL_ICON[meal];
                       return (
                         <button key={meal} onClick={() => setRecipeModal({ meal, recipe: r })} style={{
                           flex:1, aspectRatio:"1", background:"#fff",
@@ -267,7 +292,7 @@ export default function MealPlanner() {
                           alignItems:"center", justifyContent:"center",
                           gap:10, cursor:"pointer", padding:12,
                         }}>
-                          <span style={{ fontSize:36 }}>{r.emoji}</span>
+                          <MealIc style={{ width:36, height:36, color: S.greenMid }} />
                           <div style={{ textAlign:"center" }}>
                             <div style={{ fontSize:9, letterSpacing:"1.5px", textTransform:"uppercase", color:"#8a7a5a", marginBottom:4 }}>{meal}</div>
                             <div style={{ fontSize:12, fontWeight:600, color: S.brownDark, lineHeight:1.3 }}>{r.name}</div>
@@ -296,7 +321,7 @@ export default function MealPlanner() {
                       })
                     ).map(meal => {
                       const r = d[meal] ? RECIPES[d[meal]] : null;
-                      const emoji = r ? r.emoji : MEAL_EMOJI[meal];
+                      const MealIc = MEAL_ICON[meal];
                       const label = meal.charAt(0).toUpperCase() + meal.slice(1);
                       const isLogged = !!weekLogs[todayLocalStr()]?.[meal];
                       return (
@@ -309,7 +334,7 @@ export default function MealPlanner() {
                           justifyContent:"space-between",
                         }}>
                           <div>
-                            <span style={{ fontSize:28 }}>{emoji}</span>
+                            <MealIc style={{ width:28, height:28, color: isLogged ? "#a09080" : S.greenMid }} />
                             <div style={{ fontSize:13, fontWeight:700, color: S.brownDark, margin:"8px 0 2px" }}>{label}</div>
                             {r && (
                               <div style={{ fontSize:10, color:"#8a7a5a", lineHeight:1.3 }}>{r.name}</div>
@@ -349,7 +374,7 @@ export default function MealPlanner() {
           <div className="fade-in">
             {shoppingList.length === 0 ? (
               <div style={{ textAlign:"center", padding:"50px 0", color:"#8a7a5a" }}>
-                <div style={{ fontSize:40, marginBottom:12 }}>🥬</div>
+                <LeafIcon style={{ width:40, height:40, color:"#a09080", margin:"0 auto 12px", display:"block" }} />
                 <p style={{ fontStyle:"italic" }}>Seleccioná días en la pestaña Semana.</p>
               </div>
             ) : (
@@ -396,7 +421,7 @@ export default function MealPlanner() {
                   return (
                     <div key={cat} style={{ marginBottom:12, background:"#fff", border:`1.5px solid #e8e2d8`, borderRadius:12, overflow:"hidden" }}>
                       <div onClick={toggleCat} style={{ display:"flex", alignItems:"center", gap:7, padding:"12px 14px", cursor:"pointer" }}>
-                        <span style={{ fontSize:15 }}>{CAT_ICONS[cat]}</span>
+                        {(() => { const CatIc = CAT_ICON_COMP[cat]; return CatIc ? <CatIc style={{ width:16, height:16, color: S.brownMid, flexShrink:0 }} /> : null; })()}
                         <span style={{ fontSize:10, letterSpacing:"2px", textTransform:"uppercase", color: S.brownMid, fontWeight:600 }}>{cat}</span>
                         <span style={{ marginLeft:"auto", fontSize:10, color:"#a09080", marginRight:6 }}>{catChecked > 0 ? `${catChecked}/${items.length}` : items.length}</span>
                         <span style={{ fontSize:12, color:"#a09080", transform: collapsed ? "none" : "rotate(180deg)", transition:"transform 0.2s" }}>▾</span>
@@ -444,8 +469,10 @@ export default function MealPlanner() {
                 background:`linear-gradient(135deg,${S.greenMid},#2c5020)`,
                 color:"#fff", border:"none", borderRadius:10,
                 fontSize:15, fontFamily:"'Inter',sans-serif", fontWeight:700, cursor:"pointer",
+                display:"flex", alignItems:"center", justifyContent:"center", gap:8,
               }}>
-                📄 Exportar recetas (semana completa)
+                <DocumentArrowDownIcon style={{ width:18, height:18 }} />
+                Exportar recetas (semana completa)
               </button>
             </div>
           </div>
@@ -455,12 +482,12 @@ export default function MealPlanner() {
         {tab === "recetas" && (
           <div className="fade-in">
             {/* Category chips */}
-            <div style={{ display:"flex", gap:6, marginBottom:16 }}>
+            <div style={{ display:"flex", gap:6, marginBottom:12 }}>
               {[
                 { cat: "almuerzo_cena",     label: "Almuerzo / Cena"     },
                 { cat: "desayuno_merienda", label: "Desayuno / Merienda" },
               ].map(({ cat, label }) => (
-                <button key={cat} onClick={() => { setRecipeCat(cat); setExpandedRecipe(null); }} style={{
+                <button key={cat} onClick={() => { setRecipeCat(cat); setExpandedRecipe(null); setRecipeSearch(""); }} style={{
                   flex:1, padding:"9px 8px", borderRadius:8, border:"none",
                   background: recipeCat === cat ? S.greenMid : "#ede8df",
                   color: recipeCat === cat ? "#fff" : "#8a7a5a",
@@ -471,25 +498,36 @@ export default function MealPlanner() {
               ))}
             </div>
 
+            {/* Search bar */}
+            <div style={{ position:"relative", marginBottom:16 }}>
+              <MagnifyingGlassIcon style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", width:16, height:16, color:"#a09080", pointerEvents:"none" }} />
+              <input
+                value={recipeSearch}
+                onChange={e => setRecipeSearch(e.target.value)}
+                placeholder="Buscar receta..."
+                style={{
+                  width:"100%", padding:"10px 12px 10px 36px", borderRadius:10,
+                  border:`1.5px solid ${S.tan}`, fontSize:13,
+                  fontFamily:"'Inter',sans-serif", background:"#fff",
+                  color: S.brownDark, outline:"none", boxSizing:"border-box",
+                }}
+              />
+            </div>
+
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-              {Object.entries(RECIPES).filter(([, r]) => r.category === recipeCat).map(([key, recipe]) => {
-                const open   = expandedRecipe === key;
-                const usedIn = DAYS.flatMap(d => {
-                  const r = [];
-                  if (d.almuerzo === key) r.push(`${d.day} (almuerzo)`);
-                  if (d.cena     === key) r.push(`${d.day} (cena)`);
-                  return r;
-                });
+              {Object.entries(RECIPES)
+                .filter(([, r]) => r.category === recipeCat)
+                .filter(([, r]) => !recipeSearch || r.name.toLowerCase().includes(recipeSearch.toLowerCase()))
+                .map(([key, recipe]) => {
+                const open = expandedRecipe === key;
+                const RecIc = recipe.category === "almuerzo_cena" ? FireIcon : SunIcon;
                 return (
                   <div key={key} style={{ background:"#fff", border:`1.5px solid #e8e2d8`, borderRadius:12, overflow:"hidden" }}>
                     <div onClick={() => setExpandedRecipe(open ? null : key)}
                       style={{ padding:"13px 15px", display:"flex", alignItems:"center", gap:11, cursor:"pointer" }}>
-                      <span style={{ fontSize:22 }}>{recipe.emoji}</span>
+                      <RecIc style={{ width:22, height:22, color: S.greenMid, flexShrink:0 }} />
                       <div style={{ flex:1 }}>
                         <div style={{ fontSize:13, fontWeight:600, color: S.brownDark, lineHeight:1.3 }}>{recipe.name}</div>
-                        {usedIn.length > 0 && (
-                          <div style={{ fontSize:11, color:"#8a7a5a", marginTop:2 }}>{usedIn.join(" · ")}</div>
-                        )}
                       </div>
                       <span style={{ fontSize:13, color:"#a09080", display:"block", transform: open ? "rotate(180deg)" : "none", transition:"transform 0.2s" }}>▾</span>
                     </div>
@@ -529,19 +567,30 @@ export default function MealPlanner() {
 
       {/* ── HOME CHECK-IN MODAL ── */}
       {homeCheckin && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", zIndex:1000, display:"flex", alignItems:"flex-end" }}
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", zIndex:1100, display:"flex", alignItems:"flex-end" }}
           onClick={() => setHomeCheckin(null)}>
           <div onClick={e => e.stopPropagation()} style={{
             width:"100%", maxWidth:480, margin:"0 auto",
             background: S.cream, borderRadius:"16px 16px 0 0",
             padding:"24px 20px 40px", maxHeight:"85vh", overflowY:"auto",
           }}>
-            <div style={{ width:36, height:4, borderRadius:2, background: S.tan, margin:"0 auto 20px" }}/>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"center", position:"relative", marginBottom:20 }}>
+              <div style={{ width:36, height:4, borderRadius:2, background: S.tan }} />
+              <button onClick={() => setHomeCheckin(null)} style={{
+                position:"absolute", right:0, top:"50%", transform:"translateY(-50%)",
+                background:"none", border:"none", cursor:"pointer", padding:4,
+                color:"#a09080", display:"flex", alignItems:"center",
+              }}>
+                <XMarkIcon style={{ width:20, height:20 }} />
+              </button>
+            </div>
             {/* Header */}
             <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
-              <div style={{ width:48, height:48, borderRadius:12, background: S.greenLight, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, flexShrink:0 }}>
-                {homeCheckin.recipe ? homeCheckin.recipe.emoji : MEAL_EMOJI[homeCheckin.meal]}
-              </div>
+              {(() => { const Ic = MEAL_ICON[homeCheckin.meal]; return (
+                <div style={{ width:48, height:48, borderRadius:12, background: S.greenLight, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                  <Ic style={{ width:24, height:24, color: S.greenMid }} />
+                </div>
+              ); })()}
               <div>
                 <div style={{ fontSize:9, letterSpacing:"1.5px", textTransform:"uppercase", color:"#8a7a5a", marginBottom:3 }}>{homeCheckin.meal}</div>
                 <div style={{ fontSize:15, fontWeight:700, color: S.brownDark }}>
@@ -587,7 +636,7 @@ export default function MealPlanner() {
                           display:"flex", alignItems:"center", gap:12,
                           cursor:"pointer", opacity: homeSaving ? 0.6 : 1, textAlign:"left",
                         }}>
-                        <span style={{ fontSize:20 }}>{rec.emoji}</span>
+                        <SunIcon style={{ width:20, height:20, color: S.greenMid, flexShrink:0 }} />
                         <span style={{ fontSize:13, fontWeight:600, color: S.brownDark }}>{rec.name}</span>
                       </button>
                     ))
@@ -647,20 +696,31 @@ export default function MealPlanner() {
 
       {/* ── RECIPE MODAL ── */}
       {recipeModal && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", zIndex:1000, display:"flex", alignItems:"flex-end" }}
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", zIndex:1100, display:"flex", alignItems:"flex-end" }}
           onClick={() => setRecipeModal(null)}>
           <div onClick={e => e.stopPropagation()} style={{
             width:"100%", maxWidth:480, margin:"0 auto",
             background: S.cream, borderRadius:"16px 16px 0 0",
             padding:"24px 20px 40px", maxHeight:"85vh", overflowY:"auto",
           }}>
-            {/* Handle */}
-            <div style={{ width:36, height:4, borderRadius:2, background: S.tan, margin:"0 auto 20px" }}/>
+            {/* Handle + close */}
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"center", position:"relative", marginBottom:20 }}>
+              <div style={{ width:36, height:4, borderRadius:2, background: S.tan }} />
+              <button onClick={() => setRecipeModal(null)} style={{
+                position:"absolute", right:0, top:"50%", transform:"translateY(-50%)",
+                background:"none", border:"none", cursor:"pointer", padding:4,
+                color:"#a09080", display:"flex", alignItems:"center",
+              }}>
+                <XMarkIcon style={{ width:20, height:20 }} />
+              </button>
+            </div>
             {/* Header */}
             <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:20 }}>
-              <div style={{ width:52, height:52, borderRadius:12, background: S.greenLight, display:"flex", alignItems:"center", justifyContent:"center", fontSize:28, flexShrink:0 }}>
-                {recipeModal.recipe.emoji}
-              </div>
+              {(() => { const Ic = MEAL_ICON[recipeModal.meal] ?? FireIcon; return (
+                <div style={{ width:52, height:52, borderRadius:12, background: S.greenLight, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                  <Ic style={{ width:28, height:28, color: S.greenMid }} />
+                </div>
+              ); })()}
               <div>
                 <div style={{ fontSize:10, letterSpacing:"1.5px", textTransform:"uppercase", color:"#8a7a5a", marginBottom:4 }}>{recipeModal.meal}</div>
                 <div style={{ fontSize:16, fontWeight:700, color: S.brownDark, lineHeight:1.3 }}>{recipeModal.recipe.name}</div>
@@ -707,7 +767,7 @@ export default function MealPlanner() {
                   )}
                   <div style={{ marginBottom:14 }}>
                     <div style={{ fontSize:9, letterSpacing:"2px", textTransform:"uppercase", color:"#8a7a5a", marginBottom:4 }}>
-                      {meal === "almuerzo" ? "🌿 Almuerzo" : "🌙 Cena"}
+                      {meal === "almuerzo" ? "Almuerzo" : "Cena"}
                     </div>
                     <div style={{ fontSize:13, fontWeight:700, color: S.brownDark, marginBottom:8 }}>{recipe.name}</div>
                     {recipe.note && <div style={{ fontSize:10, fontStyle:"italic", color:"#8a7a5a", marginBottom:6 }}>* {recipe.note}</div>}
@@ -730,7 +790,9 @@ export default function MealPlanner() {
               color:"#fff", border:"none", borderRadius:10,
               fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:700, cursor: exporting ? "not-allowed" : "pointer",
             }}>
-              {exporting ? "⏳ Generando PDF..." : "⬇️ Descargar PDF"}
+              {exporting ? "Generando PDF..." : (
+              <><ArrowDownTrayIcon style={{ width:16, height:16, display:"inline", verticalAlign:"middle", marginRight:6 }} />Descargar PDF</>
+            )}
             </button>
           </div>
         </div>
