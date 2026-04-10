@@ -1,17 +1,34 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { RECIPES, DAYS, CATEGORIES, CAT_ICONS, fmt, getCat } from "@/lib/data";
 import Seguimiento from "@/components/Seguimiento";
 import { supabase } from "@/lib/supabase";
 
-function todayLocalStr() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
+function localDateStr(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 }
+
+function todayLocalStr() { return localDateStr(new Date()); }
+
+function currentWeekDates() {
+  const now = new Date();
+  const day = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+  monday.setHours(0, 0, 0, 0);
+  return Array.from({ length: 5 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return localDateStr(d);
+  });
+}
+
+const HEAT_COLOR = { green:"#3a6b28", yellow:"#f5a623", grey:"#c0b8a8", none:"#e8e0d0" };
+const PLANNED_MEALS = ["almuerzo", "cena"];
 
 const CHECKIN_STATUS = {
   plan:        { label: "Seguí el plan",  color: "#3a6b28" },
@@ -46,6 +63,32 @@ export default function MealPlanner() {
   const [homeCheckin,    setHomeCheckin]    = useState(null); // { meal, recipe }
   const [homeAltForm,    setHomeAltForm]    = useState({ recipeName: "", ingredients: "", notes: "" });
   const [homeSaving,     setHomeSaving]     = useState(false);
+  const [weekLogs,       setWeekLogs]       = useState({});
+
+  useEffect(() => {
+    const dates = currentWeekDates();
+    supabase.from("meal_logs").select("*").in("date", dates).then(({ data }) => {
+      if (!data) return;
+      const map = {};
+      data.forEach(row => {
+        if (!map[row.date]) map[row.date] = {};
+        map[row.date][row.meal] = row;
+      });
+      setWeekLogs(map);
+    });
+  }, []);
+
+  const plannedLogsForDate = (date) =>
+    PLANNED_MEALS.map(m => weekLogs[date]?.[m]).filter(Boolean);
+
+  const dayStatus = (date) => {
+    const vals = plannedLogsForDate(date);
+    if (vals.length === 0) return "none";
+    if (vals.every(l => l.status === "plan")) return "green";
+    if (vals.every(l => l.status === "skipped")) return "grey";
+    if (vals.some(l => l.status === "plan")) return "yellow";
+    return "yellow";
+  };
   const [expandedRecipe, setExpandedRecipe] = useState(null);
   const [recipeCat,      setRecipeCat]      = useState("almuerzo_cena");
   const [printModal,     setPrintModal]     = useState(false);
@@ -221,6 +264,42 @@ export default function MealPlanner() {
         {/* ── PLANNER ── */}
         {tab === "planner" && (
           <div className="fade-in">
+
+            {/* Weekly heatmap */}
+            {(() => {
+              const dates = currentWeekDates();
+              const today = todayLocalStr();
+              return (
+                <div style={{ background:"#fff", border:`1.5px solid ${S.tan}`, borderRadius:14, padding:"14px 16px", marginBottom:20 }}>
+                  <div style={{ fontSize:10, letterSpacing:"2px", textTransform:"uppercase", color:"#a09080", marginBottom:12 }}>Resumen semanal</div>
+                  <div style={{ display:"flex", gap:6 }}>
+                    {dates.map((date, di) => {
+                      const status   = dayStatus(date);
+                      const isFuture = date > today;
+                      const isToday  = date === today;
+                      return (
+                        <div key={date} style={{ flex:1, textAlign:"center" }}>
+                          <div style={{ fontSize:10, fontWeight: isToday ? 700 : 400, color: isToday ? S.greenMid : "#a09080", marginBottom:5 }}>
+                            {DAYS[di].short}
+                          </div>
+                          <div style={{
+                            height:36, borderRadius:8,
+                            background: isFuture ? "#f0ebe3" : HEAT_COLOR[status],
+                            opacity: isFuture ? 0.35 : 1,
+                            transition:"background 0.3s",
+                            outline: isToday ? `2px solid ${S.greenMid}` : "none",
+                          }}/>
+                          <div style={{ fontSize:9, color:"#a09080", marginTop:4 }}>
+                            {plannedLogsForDate(date).length}/2
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Day chips */}
             <div style={{ display:"flex", gap:6, marginBottom:14 }}>
               {DAYS.map((d, i) => {
@@ -296,7 +375,8 @@ export default function MealPlanner() {
                           justifyContent:"space-between",
                         }}>
                           <div>
-                            <div style={{ fontSize:9, letterSpacing:"1.5px", textTransform:"uppercase", color:"#8a7a5a", marginBottom:6 }}>{meal}</div>
+                            <span style={{ fontSize:28 }}>{r.emoji}</span>
+                            <div style={{ fontSize:9, letterSpacing:"1.5px", textTransform:"uppercase", color:"#8a7a5a", margin:"8px 0 4px" }}>{meal}</div>
                             <div style={{ fontSize:13, fontWeight:600, color: S.brownDark, lineHeight:1.4 }}>{r.name}</div>
                           </div>
                           <button
