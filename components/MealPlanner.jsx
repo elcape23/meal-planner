@@ -385,7 +385,7 @@ export default function MealPlanner() {
       </div>
 
       {/* ── SEGUIMIENTO FIXED BUTTON ── */}
-      {tab !== "seguimiento" && (
+      {tab === "planner" && (
         <div style={{ position:"fixed", bottom:0, left:0, right:0, padding:"12px 20px 24px", background:"linear-gradient(to top, #faf7f2 70%, transparent)", pointerEvents:"none" }}>
           <button onClick={() => setTab("seguimiento")} style={{
             width:"100%", maxWidth:480, display:"block", margin:"0 auto",
