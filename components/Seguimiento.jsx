@@ -4,6 +4,13 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { DAYS, RECIPES } from "@/lib/data";
 
+const MEAL_CATEGORY = {
+  desayuno:  "desayuno_merienda",
+  merienda:  "desayuno_merienda",
+  almuerzo:  "almuerzo_cena",
+  cena:      "almuerzo_cena",
+};
+
 const S = {
   greenDark:  "#2c4a1e",
   greenMid:   "#3a6b28",
@@ -435,9 +442,11 @@ export default function Seguimiento() {
                   }}
                 >
                   <option value="">Seleccioná una receta...</option>
-                  {Object.values(RECIPES).map(r => (
-                    <option key={r.name} value={r.name}>{r.emoji} {r.name}</option>
-                  ))}
+                  {Object.values(RECIPES)
+                    .filter(r => r.category === MEAL_CATEGORY[checkinDay.meal])
+                    .map(r => (
+                      <option key={r.name} value={r.name}>{r.emoji} {r.name}</option>
+                    ))}
                   <option value="__new__">+ Agregar nueva receta</option>
                 </select>
               </div>

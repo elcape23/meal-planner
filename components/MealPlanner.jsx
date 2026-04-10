@@ -210,25 +210,6 @@ export default function MealPlanner() {
               );
             })()}
 
-            {/* Bottom CTAs */}
-            <div style={{ marginTop:18, display:"flex", flexDirection:"column", gap:8 }}>
-              <button onClick={() => setTab("lista")} style={{
-                width:"100%", padding:"14px",
-                background:`linear-gradient(135deg,${S.greenMid},#2c5020)`,
-                color:"#fff", border:"none", borderRadius:10,
-                fontSize:15, fontFamily:"'Playfair Display',serif", fontWeight:700, cursor:"pointer",
-              }}>
-                🛒 Ver lista de compras →
-              </button>
-              <button onClick={() => setPrintModal(true)} style={{
-                width:"100%", padding:"14px",
-                background:"#fff", color: S.greenMid,
-                border:`1.5px solid #c8dfc0`, borderRadius:10,
-                fontSize:15, fontFamily:"'Playfair Display',serif", fontWeight:700, cursor:"pointer",
-              }}>
-                📄 Exportar recetas (semana completa)
-              </button>
-            </div>
           </div>
         )}
 
