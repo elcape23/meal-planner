@@ -25,6 +25,7 @@ function todayPlannerIdx() {
 export default function MealPlanner() {
   const [plannerDay,     setPlannerDay]     = useState(todayPlannerIdx);
   const [checked,        setChecked]        = useState({});
+  const [collapsedCats,  setCollapsedCats]  = useState(new Set());
   const [tab,            setTab]            = useState("planner");
   const [ingredientsOpen, setIngredientsOpen] = useState(null);
   const [expandedRecipe, setExpandedRecipe] = useState(null);
@@ -205,15 +206,6 @@ export default function MealPlanner() {
               );
             })()}
 
-            <button onClick={() => setTab("seguimiento")} style={{
-              width:"100%", marginTop:18, padding:"14px",
-              background:"#fff", color: S.greenMid,
-              border:`1.5px solid #c8dfc0`, borderRadius:10,
-              fontSize:15, fontFamily:"'Playfair Display',serif", fontWeight:700, cursor:"pointer",
-            }}>
-              📈 Ver seguimiento →
-            </button>
-
           </div>
         )}
 
@@ -260,41 +252,50 @@ export default function MealPlanner() {
                   const items = grouped[cat];
                   if (!items || items.length === 0) return null;
                   const catChecked = items.filter(i => checked[i.name]).length;
+                  const collapsed  = collapsedCats.has(cat);
+                  const toggleCat  = () => setCollapsedCats(prev => {
+                    const next = new Set(prev);
+                    collapsed ? next.delete(cat) : next.add(cat);
+                    return next;
+                  });
                   return (
-                    <div key={cat} style={{ marginBottom:16 }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:7, padding:"4px 0", marginBottom:7 }}>
+                    <div key={cat} style={{ marginBottom:12, background:"#fff", border:`1.5px solid #e8e2d8`, borderRadius:12, overflow:"hidden" }}>
+                      <div onClick={toggleCat} style={{ display:"flex", alignItems:"center", gap:7, padding:"12px 14px", cursor:"pointer" }}>
                         <span style={{ fontSize:15 }}>{CAT_ICONS[cat]}</span>
                         <span style={{ fontSize:10, letterSpacing:"2px", textTransform:"uppercase", color: S.brownMid, fontWeight:600 }}>{cat}</span>
-                        <span style={{ marginLeft:"auto", fontSize:10, color:"#a09080" }}>{catChecked > 0 ? `${catChecked}/${items.length}` : items.length}</span>
+                        <span style={{ marginLeft:"auto", fontSize:10, color:"#a09080", marginRight:6 }}>{catChecked > 0 ? `${catChecked}/${items.length}` : items.length}</span>
+                        <span style={{ fontSize:12, color:"#a09080", transform: collapsed ? "none" : "rotate(180deg)", transition:"transform 0.2s" }}>▾</span>
                       </div>
-                      <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
-                        {items.map(({ name, amount, unit }) => {
-                          const done = checked[name];
-                          return (
-                            <div key={name} onClick={() => toggleCheck(name)} style={{
-                              display:"flex", alignItems:"center", gap:11,
-                              padding:"11px 13px", borderRadius:9,
-                              background: done ? "#f0ebe3" : "#fff",
-                              border:`1px solid ${done ? "#d8cfc0" : "#e8e2d8"}`,
-                              cursor:"pointer", transition:"background 0.15s",
-                            }}>
-                              <div style={{
-                                width:20, height:20, borderRadius:5, flexShrink:0,
-                                border:`1.5px solid ${done ? S.greenMid : "#c0b8a8"}`,
-                                background: done ? S.greenMid : "transparent",
-                                display:"flex", alignItems:"center", justifyContent:"center",
-                                fontSize:11, color:"#fff",
+                      {!collapsed && (
+                        <div style={{ borderTop:`1px solid #f0ebe3`, padding:"8px 10px", display:"flex", flexDirection:"column", gap:5 }}>
+                          {items.map(({ name, amount, unit }) => {
+                            const done = checked[name];
+                            return (
+                              <div key={name} onClick={() => toggleCheck(name)} style={{
+                                display:"flex", alignItems:"center", gap:11,
+                                padding:"11px 13px", borderRadius:9,
+                                background: done ? "#f0ebe3" : S.cream,
+                                border:`1px solid ${done ? "#d8cfc0" : "#e8e2d8"}`,
+                                cursor:"pointer", transition:"background 0.15s",
                               }}>
-                                {done ? "✓" : ""}
+                                <div style={{
+                                  width:20, height:20, borderRadius:5, flexShrink:0,
+                                  border:`1.5px solid ${done ? S.greenMid : "#c0b8a8"}`,
+                                  background: done ? S.greenMid : "transparent",
+                                  display:"flex", alignItems:"center", justifyContent:"center",
+                                  fontSize:11, color:"#fff",
+                                }}>
+                                  {done ? "✓" : ""}
+                                </div>
+                                <span style={{ flex:1, fontSize:13, color: done ? "#a09080" : S.brownDark, textDecoration: done ? "line-through" : "none", fontStyle: done ? "italic" : "normal" }}>{name}</span>
+                                <span style={{ fontSize:13, fontWeight:600, color: done ? "#b0a090" : S.greenMid }}>
+                                  {fmt(amount, unit)}
+                                </span>
                               </div>
-                              <span style={{ flex:1, fontSize:13, color: done ? "#a09080" : S.brownDark, textDecoration: done ? "line-through" : "none", fontStyle: done ? "italic" : "normal" }}>{name}</span>
-                              <span style={{ fontSize:13, fontWeight:600, color: done ? "#b0a090" : S.greenMid }}>
-                                {unit === "c/n" ? "c/n" : fmt(amount, unit)}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -382,6 +383,21 @@ export default function MealPlanner() {
         )}
 
       </div>
+
+      {/* ── SEGUIMIENTO FIXED BUTTON ── */}
+      {tab !== "seguimiento" && (
+        <div style={{ position:"fixed", bottom:0, left:0, right:0, padding:"12px 20px 24px", background:"linear-gradient(to top, #faf7f2 70%, transparent)", pointerEvents:"none" }}>
+          <button onClick={() => setTab("seguimiento")} style={{
+            width:"100%", maxWidth:480, display:"block", margin:"0 auto",
+            padding:"13px", background:`linear-gradient(135deg,${S.greenMid},#2c5020)`,
+            color:"#fff", border:"none", borderRadius:10,
+            fontSize:14, fontFamily:"'Playfair Display',serif", fontWeight:700,
+            cursor:"pointer", pointerEvents:"all",
+          }}>
+            📈 Ver seguimiento →
+          </button>
+        </div>
+      )}
 
       {/* ── PRINT MODAL ── */}
       {printModal && (
