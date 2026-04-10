@@ -27,7 +27,7 @@ export default function MealPlanner() {
   const [checked,        setChecked]        = useState({});
   const [collapsedCats,  setCollapsedCats]  = useState(new Set());
   const [tab,            setTab]            = useState("planner");
-  const [ingredientsOpen, setIngredientsOpen] = useState(null);
+  const [ingredientsOpen, setIngredientsOpen] = useState("almuerzo");
   const [expandedRecipe, setExpandedRecipe] = useState(null);
   const [recipeCat,      setRecipeCat]      = useState("almuerzo_cena");
   const [printModal,     setPrintModal]     = useState(false);
@@ -185,7 +185,7 @@ export default function MealPlanner() {
                 const isToday    = i === todayPlannerIdx();
                 const isSelected = i === plannerDay;
                 return (
-                  <button key={i} onClick={() => { setPlannerDay(i); setIngredientsOpen(null); }} style={{
+                  <button key={i} onClick={() => { setPlannerDay(i); setIngredientsOpen("almuerzo"); }} style={{
                     flex:1, padding:"8px 4px", borderRadius:8, border:"none",
                     background: isSelected ? S.greenMid : "#ede8df",
                     color: isSelected ? "#fff" : S.brownMid,
