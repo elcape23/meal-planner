@@ -99,7 +99,7 @@ export default function MealPlanner() {
 
       {/* Header */}
       <div style={{ background:"linear-gradient(155deg,#2c4a1e,#1a2e12)", padding:"30px 20px 26px", position:"relative", overflow:"hidden" }}>
-        <div style={{ position:"absolute", top:-50, right:-50, width:200, height:200, borderRadius:"50%", background:"rgba(255,255,255,0.03)" }}/>
+        <div style={{ position:"absolute", top:-50, right:-50, width:200, height:200, borderRadius:"50%", background:"rgba(255,255,255,0.03)", pointerEvents:"none" }}/>
         <div style={{ maxWidth:480, margin:"0 auto", display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
           <div>
             <div style={{ fontSize:10, letterSpacing:"3px", color:"#8ab87a", textTransform:"uppercase", marginBottom:8 }}>Plan Nutricional</div>
@@ -146,7 +146,7 @@ export default function MealPlanner() {
                 { id:"seguimiento", label:"Seguimiento",  icon:"📈", sublabel:"Registro diario" },
               ].map(item => (
                 <button key={item.id} onClick={() => { setTab(item.id); setMenuOpen(false); }} style={{
-                  width:"100%", padding:"14px 22px", background:"none", border:"none",
+                  width:"100%", padding:"14px 22px", border:"none",
                   display:"flex", alignItems:"center", gap:14, cursor:"pointer",
                   borderLeft: tab === item.id ? `3px solid ${S.greenMid}` : "3px solid transparent",
                   background: tab === item.id ? S.greenLight : "none",
