@@ -29,6 +29,15 @@ function currentWeekDates() {
 
 const PLANNED_MEALS = ["almuerzo", "cena"];
 
+const MEAL_CATEGORY = {
+  desayuno: "desayuno_merienda",
+  almuerzo: "almuerzo_cena",
+  merienda: "desayuno_merienda",
+  cena:     "almuerzo_cena",
+};
+
+const MEAL_EMOJI = { desayuno: "☕", merienda: "🍎" };
+
 const CHECKIN_STATUS = {
   plan:        { label: "Seguí el plan",  color: "#3a6b28" },
   alternative: { label: "Comí otra cosa", color: "#f5a623" },
@@ -103,7 +112,7 @@ export default function MealPlanner() {
 
   const toggleCheck = (n) => setChecked(p => ({ ...p, [n]: !p[n] }));
 
-  const saveHomeLog = async (status) => {
+  const saveHomeLog = async (status, overrideRecipeName = null) => {
     if (!homeCheckin) return;
     setHomeSaving(true);
     const { meal, recipe } = homeCheckin;
@@ -111,7 +120,7 @@ export default function MealPlanner() {
       date:        todayLocalStr(),
       meal,
       status,
-      recipe_name: status === "plan" ? recipe.name : (homeAltForm.recipeName || null),
+      recipe_name: overrideRecipeName ?? (status === "plan" ? recipe?.name ?? null : (homeAltForm.recipeName || null)),
       ingredients: status === "alternative" ? homeAltForm.ingredients : null,
       notes:       homeAltForm.notes || null,
     };
@@ -328,21 +337,23 @@ export default function MealPlanner() {
                   <div style={{ fontSize:16, fontWeight:700, color: S.brownDark, marginBottom:12 }}>
                     ¿Qué comiste hoy?
                   </div>
-                  <div style={{ display:"flex", gap:10 }}>
-                    {["almuerzo","cena"].map(meal => {
-                      const r = RECIPES[d[meal]];
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:10 }}>
+                    {["desayuno","almuerzo","merienda","cena"].map(meal => {
+                      const r = d[meal] ? RECIPES[d[meal]] : null;
+                      const emoji = r ? r.emoji : MEAL_EMOJI[meal];
+                      const label = r ? r.name : meal.charAt(0).toUpperCase() + meal.slice(1);
                       return (
                         <div key={meal} style={{
-                          flex:1, aspectRatio:"1",
+                          width:"calc(50% - 5px)", aspectRatio:"1",
                           background:"#fff",
                           border:`1.5px solid #e8e2d8`, borderRadius:16,
                           padding:14, display:"flex", flexDirection:"column",
-                          justifyContent:"space-between",
+                          justifyContent:"space-between", boxSizing:"border-box",
                         }}>
                           <div>
-                            <span style={{ fontSize:28 }}>{r.emoji}</span>
+                            <span style={{ fontSize:28 }}>{emoji}</span>
                             <div style={{ fontSize:9, letterSpacing:"1.5px", textTransform:"uppercase", color:"#8a7a5a", margin:"8px 0 4px" }}>{meal}</div>
-                            <div style={{ fontSize:13, fontWeight:600, color: S.brownDark, lineHeight:1.4 }}>{r.name}</div>
+                            <div style={{ fontSize:13, fontWeight:600, color: S.brownDark, lineHeight:1.4 }}>{label}</div>
                           </div>
                           <button
                             onClick={() => { setHomeAltForm({ recipeName:"", ingredients:"", notes:"" }); setHomeCheckin({ meal, recipe: r }); }}
@@ -552,31 +563,71 @@ export default function MealPlanner() {
             {/* Header */}
             <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
               <div style={{ width:48, height:48, borderRadius:12, background: S.greenLight, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, flexShrink:0 }}>
-                {homeCheckin.recipe.emoji}
+                {homeCheckin.recipe ? homeCheckin.recipe.emoji : MEAL_EMOJI[homeCheckin.meal]}
               </div>
               <div>
                 <div style={{ fontSize:9, letterSpacing:"1.5px", textTransform:"uppercase", color:"#8a7a5a", marginBottom:3 }}>{homeCheckin.meal}</div>
-                <div style={{ fontSize:15, fontWeight:700, color: S.brownDark }}>{homeCheckin.recipe.name}</div>
+                <div style={{ fontSize:15, fontWeight:700, color: S.brownDark }}>
+                  {homeCheckin.recipe ? homeCheckin.recipe.name : `¿Qué comiste en el ${homeCheckin.meal}?`}
+                </div>
               </div>
             </div>
 
-            {/* Status buttons */}
-            <div style={{ display:"flex", flexDirection:"column", gap:9, marginBottom:20 }}>
-              {Object.entries(CHECKIN_STATUS).map(([key, { label, color }]) => (
-                <button key={key} onClick={() => key !== "alternative" && saveHomeLog(key)}
-                  disabled={homeSaving}
-                  style={{
-                    width:"100%", padding:"13px 16px", background:"#fff",
-                    border:`1.5px solid ${S.tan}`, borderRadius:10,
-                    display:"flex", alignItems:"center", gap:12,
-                    cursor: key === "alternative" ? "default" : "pointer",
-                    opacity: homeSaving ? 0.6 : 1,
-                  }}>
-                  <div style={{ width:12, height:12, borderRadius:"50%", background: color, flexShrink:0 }}/>
-                  <span style={{ fontSize:14, fontWeight:600, color }}>{label}</span>
-                </button>
-              ))}
-            </div>
+            {homeCheckin.recipe ? (
+              <>
+                {/* Status buttons — plan has a recipe */}
+                <div style={{ display:"flex", flexDirection:"column", gap:9, marginBottom:20 }}>
+                  {Object.entries(CHECKIN_STATUS).map(([key, { label, color }]) => (
+                    <button key={key} onClick={() => key !== "alternative" && saveHomeLog(key)}
+                      disabled={homeSaving}
+                      style={{
+                        width:"100%", padding:"13px 16px", background:"#fff",
+                        border:`1.5px solid ${S.tan}`, borderRadius:10,
+                        display:"flex", alignItems:"center", gap:12,
+                        cursor: key === "alternative" ? "default" : "pointer",
+                        opacity: homeSaving ? 0.6 : 1,
+                      }}>
+                      <div style={{ width:12, height:12, borderRadius:"50%", background: color, flexShrink:0 }}/>
+                      <span style={{ fontSize:14, fontWeight:600, color }}>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Recipe picker — no planned recipe (desayuno / merienda) */}
+                <div style={{ fontSize:10, letterSpacing:"2px", textTransform:"uppercase", color:"#a09080", marginBottom:10 }}>Opciones</div>
+                <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:20 }}>
+                  {Object.entries(RECIPES)
+                    .filter(([, rec]) => rec.category === MEAL_CATEGORY[homeCheckin.meal])
+                    .map(([key, rec]) => (
+                      <button key={key}
+                        onClick={() => saveHomeLog("plan", rec.name)}
+                        disabled={homeSaving}
+                        style={{
+                          width:"100%", padding:"13px 16px", background:"#fff",
+                          border:`1.5px solid ${S.tan}`, borderRadius:10,
+                          display:"flex", alignItems:"center", gap:12,
+                          cursor:"pointer", opacity: homeSaving ? 0.6 : 1, textAlign:"left",
+                        }}>
+                        <span style={{ fontSize:20 }}>{rec.emoji}</span>
+                        <span style={{ fontSize:13, fontWeight:600, color: S.brownDark }}>{rec.name}</span>
+                      </button>
+                    ))
+                  }
+                  <button onClick={() => saveHomeLog("skipped")} disabled={homeSaving}
+                    style={{
+                      width:"100%", padding:"13px 16px", background:"#fff",
+                      border:`1.5px solid ${S.tan}`, borderRadius:10,
+                      display:"flex", alignItems:"center", gap:12,
+                      cursor:"pointer", opacity: homeSaving ? 0.6 : 1,
+                    }}>
+                    <div style={{ width:12, height:12, borderRadius:"50%", background:"#a09080", flexShrink:0 }}/>
+                    <span style={{ fontSize:14, fontWeight:600, color:"#a09080" }}>No comí</span>
+                  </button>
+                </div>
+              </>
+            )}
 
             {/* Alternative form */}
             <div style={{ background:"#fff", border:`1.5px solid ${S.tan}`, borderRadius:12, padding:"16px" }}>
