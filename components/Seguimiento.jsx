@@ -67,9 +67,16 @@ export default function Seguimiento() {
   const [altForm,     setAltForm]     = useState({ recipeName: "", customRecipeName: "", ingredients: "", notes: "" });
   const [saving,      setSaving]      = useState(false);
   const [view,        setView]        = useState("week"); // "week" | "summary"
+  const [selectedDate, setSelectedDate] = useState(todayStr);
 
   const weekStart = getWeekStart(weekOffset);
   const weekDates = getWeekDates(weekStart);
+
+  // When switching weeks, snap selection to today (if current week) or first day
+  useEffect(() => {
+    const today = todayStr();
+    setSelectedDate(weekDates.includes(today) ? today : weekDates[0]);
+  }, [weekOffset]);
 
   const loadLogs = useCallback(async () => {
     setLoading(true);
@@ -181,22 +188,61 @@ export default function Seguimiento() {
       ) : view === "week" ? (
 
         /* ── DAY VIEW ── */
-        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-          {weekDates.map((date, di) => {
-            const d = DAYS[di];
+        <div>
+          {/* Day pills */}
+          <div style={{ display:"flex", gap:6, marginBottom:14 }}>
+            {weekDates.map((date, di) => {
+              const isToday    = date === todayStr();
+              const isSelected = date === selectedDate;
+              const isFuture   = date > todayStr();
+              const status     = dayStatus(date);
+              return (
+                <button key={date} onClick={() => setSelectedDate(date)} style={{
+                  flex:1, padding:"8px 4px", borderRadius:8, border:"none",
+                  background: isSelected ? S.greenMid : "#ede8df",
+                  color: isSelected ? "#fff" : isFuture ? "#c0b8a8" : S.brownMid,
+                  fontSize:10, fontFamily:"Lora,serif",
+                  fontWeight: isSelected ? 700 : 400,
+                  cursor:"pointer", position:"relative",
+                }}>
+                  {DAYS[di].short}
+                  {isToday && (
+                    <div style={{
+                      position:"absolute", bottom:3, left:"50%", transform:"translateX(-50%)",
+                      width:4, height:4, borderRadius:"50%",
+                      background: isSelected ? "#fff" : S.greenMid,
+                    }}/>
+                  )}
+                  {!isSelected && !isFuture && status !== "none" && (
+                    <div style={{
+                      position:"absolute", top:3, right:4,
+                      width:5, height:5, borderRadius:"50%",
+                      background: heatColor[status],
+                    }}/>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Selected day card */}
+          {(() => {
+            const di      = weekDates.indexOf(selectedDate);
+            const date    = selectedDate;
+            const d       = DAYS[di];
             const isToday = date === todayStr();
             const isFuture = date > todayStr();
             return (
-              <div key={date} style={{
+              <div style={{
                 background: "#fff",
                 border:`1.5px solid ${isToday ? S.greenMid : S.tan}`,
                 borderRadius:12, overflow:"hidden",
-                opacity: isFuture ? 0.45 : 1,
               }}>
                 {/* Day header */}
                 <div style={{ padding:"10px 14px", background: isToday ? S.greenLight : S.brownLight, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
                   <span style={{ fontSize:13, fontWeight:700, color: isToday ? S.greenDark : S.brownMid }}>
-                    {d.day} {isToday && <span style={{ fontSize:10, background: S.greenMid, color:"#fff", borderRadius:4, padding:"1px 6px", marginLeft:6 }}>Hoy</span>}
+                    {d.day}
+                    {isToday && <span style={{ fontSize:10, background: S.greenMid, color:"#fff", borderRadius:4, padding:"1px 6px", marginLeft:6 }}>Hoy</span>}
                   </span>
                   <span style={{ fontSize:11, color:"#a09080" }}>
                     {new Date(date + "T12:00:00").toLocaleDateString("es-AR", { day:"numeric", month:"short" })}
@@ -205,9 +251,9 @@ export default function Seguimiento() {
 
                 {/* Meals */}
                 {MEALS.map(({ key: meal, label: mealLabel, icon }) => {
-                  const log      = logs[date]?.[meal];
+                  const log       = logs[date]?.[meal];
                   const isPlanned = PLANNED_MEALS.includes(meal);
-                  const planned  = isPlanned ? RECIPES[d[meal]] : null;
+                  const planned   = isPlanned ? RECIPES[d[meal]] : null;
                   return (
                     <div key={meal} style={{ padding:"10px 14px", borderTop:`1px solid ${S.tan}` }}>
                       <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
@@ -244,7 +290,7 @@ export default function Seguimiento() {
                 })}
               </div>
             );
-          })}
+          })()}
         </div>
 
       ) : (
