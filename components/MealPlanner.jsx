@@ -27,7 +27,7 @@ export default function MealPlanner() {
   const [checked,        setChecked]        = useState({});
   const [collapsedCats,  setCollapsedCats]  = useState(new Set());
   const [tab,            setTab]            = useState("planner");
-  const [ingredientsOpen, setIngredientsOpen] = useState("almuerzo");
+  const [recipeModal, setRecipeModal] = useState(null); // { meal, recipe }
   const [expandedRecipe, setExpandedRecipe] = useState(null);
   const [recipeCat,      setRecipeCat]      = useState("almuerzo_cena");
   const [printModal,     setPrintModal]     = useState(false);
@@ -96,7 +96,7 @@ export default function MealPlanner() {
   };
 
   const modalEntries = useMemo(() => {
-    return DAYS.flatMap((d, idx) =>
+    return DAYS.flatMap(d =>
       ["almuerzo","cena"].map(meal => ({ day: d.day, meal, recipe: RECIPES[d[meal]] }))
     );
   }, []);
@@ -185,7 +185,7 @@ export default function MealPlanner() {
                 const isToday    = i === todayPlannerIdx();
                 const isSelected = i === plannerDay;
                 return (
-                  <button key={i} onClick={() => { setPlannerDay(i); setIngredientsOpen("almuerzo"); }} style={{
+                  <button key={i} onClick={() => setPlannerDay(i)} style={{
                     flex:1, padding:"8px 4px", borderRadius:8, border:"none",
                     background: isSelected ? S.greenMid : "#ede8df",
                     color: isSelected ? "#fff" : S.brownMid,
@@ -206,46 +206,35 @@ export default function MealPlanner() {
               })}
             </div>
 
-            {/* Selected day — one card per meal */}
+            {/* Today's recipes */}
             {(() => {
               const d = DAYS[plannerDay];
               return (
-                <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
-                  {["almuerzo","cena"].map(meal => {
-                    const r    = RECIPES[d[meal]];
-                    const open = ingredientsOpen === meal;
-                    return (
-                      <div key={meal} style={{ background:"#fff", border:`1.5px solid #c8dfc0`, borderRadius:12, overflow:"hidden" }}>
-                        <div style={{ padding:"13px 15px", display:"flex", alignItems:"center", gap:11, cursor:"pointer" }}
-                          onClick={() => setIngredientsOpen(open ? null : meal)}>
-                          <div style={{
-                            width:34, height:34, borderRadius:7, flexShrink:0,
-                            background: S.greenLight,
-                            display:"flex", alignItems:"center", justifyContent:"center",
-                            fontSize:18,
-                          }}>
-                            {r.emoji}
+                <>
+                  <div style={{ fontSize:13, fontWeight:700, color: S.brownDark, marginBottom:12 }}>
+                    ¿Qué te toca hoy?
+                  </div>
+                  <div style={{ display:"flex", gap:10 }}>
+                    {["almuerzo","cena"].map(meal => {
+                      const r = RECIPES[d[meal]];
+                      return (
+                        <button key={meal} onClick={() => setRecipeModal({ meal, recipe: r })} style={{
+                          flex:1, aspectRatio:"1", background:"#fff",
+                          border:`1.5px solid #c8dfc0`, borderRadius:16,
+                          display:"flex", flexDirection:"column",
+                          alignItems:"center", justifyContent:"center",
+                          gap:10, cursor:"pointer", padding:12,
+                        }}>
+                          <span style={{ fontSize:36 }}>{r.emoji}</span>
+                          <div style={{ textAlign:"center" }}>
+                            <div style={{ fontSize:9, letterSpacing:"1.5px", textTransform:"uppercase", color:"#8a7a5a", marginBottom:4 }}>{meal}</div>
+                            <div style={{ fontSize:12, fontWeight:600, color: S.brownDark, lineHeight:1.3 }}>{r.name}</div>
                           </div>
-                          <div style={{ flex:1 }}>
-                            <div style={{ fontSize:10, letterSpacing:"1.5px", textTransform:"uppercase", color:"#8a7a5a", marginBottom:3 }}>{meal}</div>
-                            <div style={{ fontSize:13, fontWeight:600, color: S.brownDark, lineHeight:1.3 }}>{r.name}</div>
-                          </div>
-                          <span style={{ fontSize:13, color:"#a09080", transform: open ? "rotate(180deg)" : "none", transition:"transform 0.2s" }}>▾</span>
-                        </div>
-                        {open && (
-                          <div style={{ borderTop:"1px solid #eee", padding:"12px 15px", background:"#fcfaf7" }}>
-                            {r.ingredients.map(ing => (
-                              <div key={ing.name} style={{ display:"flex", justifyContent:"space-between", fontSize:12, padding:"4px 0", borderBottom:`1px solid ${S.brownLight}`, color: S.brownDark }}>
-                                <span>{ing.name}</span>
-                                <span style={{ color: S.greenMid, fontWeight:600 }}>{fmt(ing.amount, ing.unit)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
               );
             })()}
 
@@ -439,6 +428,43 @@ export default function MealPlanner() {
           }}>
             📈 Ver seguimiento →
           </button>
+        </div>
+      )}
+
+      {/* ── RECIPE MODAL ── */}
+      {recipeModal && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", zIndex:1000, display:"flex", alignItems:"flex-end" }}
+          onClick={() => setRecipeModal(null)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width:"100%", maxWidth:480, margin:"0 auto",
+            background: S.cream, borderRadius:"16px 16px 0 0",
+            padding:"24px 20px 40px", maxHeight:"85vh", overflowY:"auto",
+          }}>
+            {/* Handle */}
+            <div style={{ width:36, height:4, borderRadius:2, background: S.tan, margin:"0 auto 20px" }}/>
+            {/* Header */}
+            <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:20 }}>
+              <div style={{ width:52, height:52, borderRadius:12, background: S.greenLight, display:"flex", alignItems:"center", justifyContent:"center", fontSize:28, flexShrink:0 }}>
+                {recipeModal.recipe.emoji}
+              </div>
+              <div>
+                <div style={{ fontSize:10, letterSpacing:"1.5px", textTransform:"uppercase", color:"#8a7a5a", marginBottom:4 }}>{recipeModal.meal}</div>
+                <div style={{ fontSize:16, fontWeight:700, color: S.brownDark, lineHeight:1.3 }}>{recipeModal.recipe.name}</div>
+              </div>
+            </div>
+            {/* Note */}
+            {recipeModal.recipe.note && (
+              <div style={{ fontSize:12, color:"#8a7a5a", fontStyle:"italic", marginBottom:14 }}>* {recipeModal.recipe.note}</div>
+            )}
+            {/* Ingredients */}
+            <div style={{ fontSize:10, letterSpacing:"2px", textTransform:"uppercase", color:"#a09080", marginBottom:10 }}>Ingredientes</div>
+            {recipeModal.recipe.ingredients.map(ing => (
+              <div key={ing.name} style={{ display:"flex", justifyContent:"space-between", padding:"10px 0", borderBottom:`1px solid ${S.brownLight}`, fontSize:13, color: S.brownDark }}>
+                <span>{ing.name}</span>
+                <span style={{ fontWeight:600, color: S.greenMid }}>{fmt(ing.amount, ing.unit)}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
