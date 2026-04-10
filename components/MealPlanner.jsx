@@ -3,6 +3,21 @@
 import { useState, useMemo } from "react";
 import { RECIPES, DAYS, CATEGORIES, CAT_ICONS, fmt, getCat } from "@/lib/data";
 import Seguimiento from "@/components/Seguimiento";
+import { supabase } from "@/lib/supabase";
+
+function todayLocalStr() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+const CHECKIN_STATUS = {
+  plan:        { label: "Seguí el plan",  color: "#3a6b28" },
+  alternative: { label: "Comí otra cosa", color: "#f5a623" },
+  skipped:     { label: "No comí",        color: "#a09080" },
+};
 
 const S = {
   // Colors
@@ -27,7 +42,10 @@ export default function MealPlanner() {
   const [checked,        setChecked]        = useState({});
   const [collapsedCats,  setCollapsedCats]  = useState(new Set());
   const [tab,            setTab]            = useState("planner");
-  const [recipeModal, setRecipeModal] = useState(null); // { meal, recipe }
+  const [recipeModal,    setRecipeModal]    = useState(null); // { meal, recipe }
+  const [homeCheckin,    setHomeCheckin]    = useState(null); // { meal, recipe }
+  const [homeAltForm,    setHomeAltForm]    = useState({ recipeName: "", ingredients: "", notes: "" });
+  const [homeSaving,     setHomeSaving]     = useState(false);
   const [expandedRecipe, setExpandedRecipe] = useState(null);
   const [recipeCat,      setRecipeCat]      = useState("almuerzo_cena");
   const [printModal,     setPrintModal]     = useState(false);
@@ -42,6 +60,30 @@ export default function MealPlanner() {
   };
 
   const toggleCheck = (n) => setChecked(p => ({ ...p, [n]: !p[n] }));
+
+  const saveHomeLog = async (status) => {
+    if (!homeCheckin) return;
+    setHomeSaving(true);
+    const { meal, recipe } = homeCheckin;
+    const payload = {
+      date:        todayLocalStr(),
+      meal,
+      status,
+      recipe_name: status === "plan" ? recipe.name : (homeAltForm.recipeName || null),
+      ingredients: status === "alternative" ? homeAltForm.ingredients : null,
+      notes:       homeAltForm.notes || null,
+    };
+    const { data: existing } = await supabase
+      .from("meal_logs").select("id").eq("date", todayLocalStr()).eq("meal", meal).maybeSingle();
+    if (existing?.id) {
+      await supabase.from("meal_logs").update(payload).eq("id", existing.id);
+    } else {
+      await supabase.from("meal_logs").insert(payload);
+    }
+    setHomeSaving(false);
+    setHomeCheckin(null);
+    setHomeAltForm({ recipeName: "", ingredients: "", notes: "" });
+  };
 
   const shoppingList = useMemo(() => {
     const totals = {};
@@ -206,15 +248,15 @@ export default function MealPlanner() {
               })}
             </div>
 
-            {/* Today's recipes */}
             {(() => {
               const d = DAYS[plannerDay];
               return (
                 <>
-                  <div style={{ fontSize:13, fontWeight:700, color: S.brownDark, marginBottom:12 }}>
+                  {/* Section 1 — Qué te toca hoy */}
+                  <div style={{ fontSize:16, fontWeight:700, color: S.brownDark, marginBottom:12 }}>
                     ¿Qué te toca hoy?
                   </div>
-                  <div style={{ display:"flex", gap:10 }}>
+                  <div style={{ display:"flex", gap:10, marginBottom:28 }}>
                     {["almuerzo","cena"].map(meal => {
                       const r = RECIPES[d[meal]];
                       return (
@@ -231,6 +273,42 @@ export default function MealPlanner() {
                             <div style={{ fontSize:12, fontWeight:600, color: S.brownDark, lineHeight:1.3 }}>{r.name}</div>
                           </div>
                         </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Section 2 — Qué comiste hoy */}
+                  <div style={{ fontSize:16, fontWeight:700, color: S.brownDark, marginBottom:12 }}>
+                    ¿Qué comiste hoy?
+                  </div>
+                  <div style={{
+                    display:"flex", gap:10, overflowX:"auto", paddingBottom:4,
+                    scrollSnapType:"x mandatory", msOverflowStyle:"none", scrollbarWidth:"none",
+                  }}>
+                    {["almuerzo","cena"].map(meal => {
+                      const r = RECIPES[d[meal]];
+                      return (
+                        <div key={meal} style={{
+                          flexShrink:0, width:"65%", aspectRatio:"1",
+                          scrollSnapAlign:"start", background:"#fff",
+                          border:`1.5px solid #e8e2d8`, borderRadius:16,
+                          padding:14, display:"flex", flexDirection:"column",
+                          justifyContent:"space-between",
+                        }}>
+                          <div>
+                            <div style={{ fontSize:9, letterSpacing:"1.5px", textTransform:"uppercase", color:"#8a7a5a", marginBottom:6 }}>{meal}</div>
+                            <div style={{ fontSize:13, fontWeight:600, color: S.brownDark, lineHeight:1.4 }}>{r.name}</div>
+                          </div>
+                          <button
+                            onClick={() => { setHomeAltForm({ recipeName:"", ingredients:"", notes:"" }); setHomeCheckin({ meal, recipe: r }); }}
+                            style={{
+                              width:"100%", padding:"9px 0", borderRadius:8, border:"none",
+                              background: S.greenMid, color:"#fff",
+                              fontSize:12, fontWeight:600, cursor:"pointer",
+                            }}>
+                            Registrar
+                          </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -428,6 +506,84 @@ export default function MealPlanner() {
           }}>
             📈 Ver seguimiento →
           </button>
+        </div>
+      )}
+
+      {/* ── HOME CHECK-IN MODAL ── */}
+      {homeCheckin && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", zIndex:1000, display:"flex", alignItems:"flex-end" }}
+          onClick={() => setHomeCheckin(null)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width:"100%", maxWidth:480, margin:"0 auto",
+            background: S.cream, borderRadius:"16px 16px 0 0",
+            padding:"24px 20px 40px", maxHeight:"85vh", overflowY:"auto",
+          }}>
+            <div style={{ width:36, height:4, borderRadius:2, background: S.tan, margin:"0 auto 20px" }}/>
+            {/* Header */}
+            <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
+              <div style={{ width:48, height:48, borderRadius:12, background: S.greenLight, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, flexShrink:0 }}>
+                {homeCheckin.recipe.emoji}
+              </div>
+              <div>
+                <div style={{ fontSize:9, letterSpacing:"1.5px", textTransform:"uppercase", color:"#8a7a5a", marginBottom:3 }}>{homeCheckin.meal}</div>
+                <div style={{ fontSize:15, fontWeight:700, color: S.brownDark }}>{homeCheckin.recipe.name}</div>
+              </div>
+            </div>
+
+            {/* Status buttons */}
+            <div style={{ display:"flex", flexDirection:"column", gap:9, marginBottom:20 }}>
+              {Object.entries(CHECKIN_STATUS).map(([key, { label, color }]) => (
+                <button key={key} onClick={() => key !== "alternative" && saveHomeLog(key)}
+                  disabled={homeSaving}
+                  style={{
+                    width:"100%", padding:"13px 16px", background:"#fff",
+                    border:`1.5px solid ${S.tan}`, borderRadius:10,
+                    display:"flex", alignItems:"center", gap:12,
+                    cursor: key === "alternative" ? "default" : "pointer",
+                    opacity: homeSaving ? 0.6 : 1,
+                  }}>
+                  <div style={{ width:12, height:12, borderRadius:"50%", background: color, flexShrink:0 }}/>
+                  <span style={{ fontSize:14, fontWeight:600, color }}>{label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Alternative form */}
+            <div style={{ background:"#fff", border:`1.5px solid ${S.tan}`, borderRadius:12, padding:"16px" }}>
+              <div style={{ fontSize:10, letterSpacing:"1.5px", textTransform:"uppercase", color:"#a09080", marginBottom:12 }}>Comida alternativa</div>
+              {[
+                { key:"recipeName",  label:"Nombre",               placeholder:"Ej: Milanesa con ensalada" },
+                { key:"ingredients", label:"Ingredientes (opcional)", placeholder:"Ej: Milanesa 200g, lechuga" },
+                { key:"notes",       label:"Notas (opcional)",       placeholder:"Ej: Comí afuera" },
+              ].map(({ key, label, placeholder }) => (
+                <div key={key} style={{ marginBottom:10 }}>
+                  <div style={{ fontSize:11, color:"#a09080", marginBottom:4 }}>{label}</div>
+                  <input
+                    value={homeAltForm[key]}
+                    onChange={e => setHomeAltForm(p => ({ ...p, [key]: e.target.value }))}
+                    placeholder={placeholder}
+                    style={{
+                      width:"100%", padding:"10px 12px", borderRadius:8,
+                      border:`1px solid ${S.tan}`, fontSize:13,
+                      fontFamily:"'Inter',sans-serif", color: S.brownDark,
+                      background: S.cream, outline:"none",
+                    }}
+                  />
+                </div>
+              ))}
+              <button
+                onClick={() => saveHomeLog("alternative")}
+                disabled={homeSaving || !homeAltForm.recipeName}
+                style={{
+                  width:"100%", marginTop:4, padding:"12px", border:"none", borderRadius:10,
+                  background: homeAltForm.recipeName ? `linear-gradient(135deg,${S.greenMid},#2c5020)` : "#ede8df",
+                  color: homeAltForm.recipeName ? "#fff" : "#a09080",
+                  fontSize:14, fontWeight:700, cursor: homeAltForm.recipeName ? "pointer" : "not-allowed",
+                }}>
+                {homeSaving ? "Guardando..." : "Guardar comida alternativa"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
