@@ -205,6 +205,15 @@ export default function MealPlanner() {
               );
             })()}
 
+            <button onClick={() => setTab("seguimiento")} style={{
+              width:"100%", marginTop:18, padding:"14px",
+              background:"#fff", color: S.greenMid,
+              border:`1.5px solid #c8dfc0`, borderRadius:10,
+              fontSize:15, fontFamily:"'Playfair Display',serif", fontWeight:700, cursor:"pointer",
+            }}>
+              📈 Ver seguimiento →
+            </button>
+
           </div>
         )}
 
@@ -326,9 +335,6 @@ export default function MealPlanner() {
               ))}
             </div>
 
-            {[
-              { cat: "almuerzo_cena",      label: "Almuerzo / Cena"      },
-              { cat: "desayuno_merienda",  label: "Desayuno / Merienda"  },
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
               {Object.entries(RECIPES).filter(([, r]) => r.category === recipeCat).map(([key, recipe]) => {
                 const open   = expandedRecipe === key;
