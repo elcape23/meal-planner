@@ -102,7 +102,7 @@ export default function MealPlanner() {
   }, []);
 
   return (
-    <div style={{ minHeight:"100vh", background: S.cream, fontFamily:"'Lora',Georgia,serif", color: S.brownDark }}>
+    <div style={{ minHeight:"100vh", background: S.cream, fontFamily:"'Inter',sans-serif", color: S.brownDark }}>
 
       {/* Header */}
       <div style={{ background:"linear-gradient(155deg,#2c4a1e,#1a2e12)", padding:"30px 20px 26px", position:"relative", overflow:"hidden" }}>
@@ -110,7 +110,7 @@ export default function MealPlanner() {
         <div style={{ maxWidth:480, margin:"0 auto", display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
           <div>
             <div style={{ fontSize:10, letterSpacing:"3px", color:"#8ab87a", textTransform:"uppercase", marginBottom:8 }}>Plan Nutricional</div>
-            <h1 style={{ fontFamily:"'Playfair Display',serif", fontSize:26, fontWeight:900, color:"#f5f0e8", lineHeight:1.2, marginBottom:5 }}>
+            <h1 style={{ fontFamily:"'Inter',sans-serif", fontSize:26, fontWeight:900, color:"#f5f0e8", lineHeight:1.2, marginBottom:5 }}>
               Ledesma<br/>Juan José
             </h1>
             <p style={{ fontSize:12, color:"#6a8a5a", fontStyle:"italic" }}>Almuerzo & Cena · 1 porción · Lunes a Viernes</p>
@@ -150,7 +150,7 @@ export default function MealPlanner() {
             <div style={{ background:"linear-gradient(155deg,#2c4a1e,#1a2e12)", padding:"28px 20px 22px", display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
               <div>
                 <div style={{ fontSize:9, letterSpacing:"3px", color:"#8ab87a", textTransform:"uppercase", marginBottom:6 }}>Plan Nutricional</div>
-                <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, fontWeight:900, color:"#f5f0e8" }}>Ledesma Juan José</div>
+                <div style={{ fontFamily:"'Inter',sans-serif", fontSize:18, fontWeight:900, color:"#f5f0e8" }}>Ledesma Juan José</div>
               </div>
               <button onClick={closeMenu} style={{ background:"rgba(255,255,255,0.12)", border:"none", borderRadius:8, width:32, height:32, color:"#f5f0e8", fontSize:16, cursor:"pointer", flexShrink:0 }}>✕</button>
             </div>
@@ -170,7 +170,7 @@ export default function MealPlanner() {
                 }}>
                   <span style={{ fontSize:20 }}>{item.icon}</span>
                   <div style={{ textAlign:"left" }}>
-                    <div style={{ fontSize:14, fontFamily:"'Playfair Display',serif", fontWeight:700, color: tab === item.id ? S.greenDark : S.brownDark }}>{item.label}</div>
+                    <div style={{ fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:700, color: tab === item.id ? S.greenDark : S.brownDark }}>{item.label}</div>
                     <div style={{ fontSize:11, color:"#a09080", marginTop:1 }}>{item.sublabel}</div>
                   </div>
                 </button>
@@ -195,7 +195,7 @@ export default function MealPlanner() {
                     flex:1, padding:"8px 4px", borderRadius:8, border:"none",
                     background: isSelected ? S.greenMid : "#ede8df",
                     color: isSelected ? "#fff" : S.brownMid,
-                    fontSize:10, fontFamily:"Lora,serif",
+                    fontSize:10, fontFamily:"'Inter',sans-serif",
                     fontWeight: isSelected ? 700 : 400,
                     cursor:"pointer", position:"relative",
                   }}>
@@ -280,7 +280,7 @@ export default function MealPlanner() {
                     {checkedCount > 0 && <div style={{ fontSize:11, color:"#7aaa6a", marginTop:2 }}>{checkedCount} de {total} listos</div>}
                   </div>
                   <div style={{ textAlign:"right" }}>
-                    <div style={{ fontSize:28, fontWeight:900, color:"#fff", fontFamily:"'Playfair Display',serif" }}>{total}</div>
+                    <div style={{ fontSize:28, fontWeight:900, color:"#fff", fontFamily:"'Inter',sans-serif" }}>{total}</div>
                     <div style={{ fontSize:10, color:"#a8d5a0" }}>ingredientes</div>
                   </div>
                 </div>
@@ -292,7 +292,7 @@ export default function MealPlanner() {
                     </div>
                     <div style={{ display:"flex", justifyContent:"space-between", marginTop:5, fontSize:11, color:"#8a7a5a" }}>
                       <span>{checkedCount} en el carrito</span>
-                      <button onClick={() => setChecked({})} style={{ background:"none", border:"none", fontSize:11, color:"#8a7a5a", fontFamily:"Lora,serif", textDecoration:"underline", cursor:"pointer" }}>Limpiar</button>
+                      <button onClick={() => setChecked({})} style={{ background:"none", border:"none", fontSize:11, color:"#8a7a5a", fontFamily:"'Inter',sans-serif", textDecoration:"underline", cursor:"pointer" }}>Limpiar</button>
                     </div>
                   </div>
                 )}
@@ -357,7 +357,7 @@ export default function MealPlanner() {
                 width:"100%", padding:"14px",
                 background:`linear-gradient(135deg,${S.greenMid},#2c5020)`,
                 color:"#fff", border:"none", borderRadius:10,
-                fontSize:15, fontFamily:"'Playfair Display',serif", fontWeight:700, cursor:"pointer",
+                fontSize:15, fontFamily:"'Inter',sans-serif", fontWeight:700, cursor:"pointer",
               }}>
                 📄 Exportar recetas (semana completa)
               </button>
@@ -378,7 +378,7 @@ export default function MealPlanner() {
                   flex:1, padding:"9px 8px", borderRadius:8, border:"none",
                   background: recipeCat === cat ? S.greenMid : "#ede8df",
                   color: recipeCat === cat ? "#fff" : "#8a7a5a",
-                  fontSize:12, fontFamily:"Lora,serif",
+                  fontSize:12, fontFamily:"'Inter',sans-serif",
                   fontWeight: recipeCat === cat ? 600 : 400,
                   cursor:"pointer",
                 }}>{label}</button>
@@ -440,7 +440,7 @@ export default function MealPlanner() {
             width:"100%", maxWidth:480, display:"block", margin:"0 auto",
             padding:"13px", background:`linear-gradient(135deg,${S.greenMid},#2c5020)`,
             color:"#fff", border:"none", borderRadius:10,
-            fontSize:14, fontFamily:"'Playfair Display',serif", fontWeight:700,
+            fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:700,
             cursor:"pointer", pointerEvents:"all",
           }}>
             📈 Ver seguimiento →
@@ -454,7 +454,7 @@ export default function MealPlanner() {
           <div style={{ background:`linear-gradient(135deg,#2c4a1e,#1a2e12)`, padding:"20px 20px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 }}>
             <div>
               <div style={{ fontSize:10, letterSpacing:"2px", color:"#8ab87a", textTransform:"uppercase", marginBottom:3 }}>Recetas</div>
-              <div style={{ fontSize:16, fontWeight:900, color:"#f5f0e8", fontFamily:"'Playfair Display',serif" }}>
+              <div style={{ fontSize:16, fontWeight:900, color:"#f5f0e8", fontFamily:"'Inter',sans-serif" }}>
                 {DAYS.map(d => d.day).join(", ")}
               </div>
             </div>
@@ -468,7 +468,7 @@ export default function MealPlanner() {
                 <div key={`${day}-${meal}`}>
                   {isNewDay && (
                     <div style={{ borderTop: idx === 0 ? "none" : `2px solid ${S.greenLight}`, paddingTop: idx === 0 ? 0 : 16, marginTop: idx === 0 ? 0 : 16, marginBottom:12 }}>
-                      <span style={{ fontSize:16, fontWeight:900, color: S.greenDark, fontFamily:"'Playfair Display',serif" }}>{day.toUpperCase()}</span>
+                      <span style={{ fontSize:16, fontWeight:900, color: S.greenDark, fontFamily:"'Inter',sans-serif" }}>{day.toUpperCase()}</span>
                     </div>
                   )}
                   <div style={{ marginBottom:14 }}>
@@ -494,7 +494,7 @@ export default function MealPlanner() {
               width:"100%", padding:"13px",
               background: exporting ? "#6a9a58" : `linear-gradient(135deg,${S.greenMid},#2c5020)`,
               color:"#fff", border:"none", borderRadius:10,
-              fontSize:14, fontFamily:"'Playfair Display',serif", fontWeight:700, cursor: exporting ? "not-allowed" : "pointer",
+              fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:700, cursor: exporting ? "not-allowed" : "pointer",
             }}>
               {exporting ? "⏳ Generando PDF..." : "⬇️ Descargar PDF"}
             </button>

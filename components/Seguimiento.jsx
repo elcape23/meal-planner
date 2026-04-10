@@ -170,7 +170,7 @@ export default function Seguimiento() {
   const heatColor = { green: S.greenMid, yellow: S.yellow, grey: "#c0b8a8", none: S.tan };
 
   return (
-    <div style={{ fontFamily:"'Lora',Georgia,serif", color: S.brownDark }}>
+    <div style={{ fontFamily:"'Inter',sans-serif", color: S.brownDark }}>
 
       {/* Week navigator */}
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:18 }}>
@@ -187,7 +187,7 @@ export default function Seguimiento() {
             flex:1, padding:"8px", borderRadius:8, border:"none",
             background: view === id ? S.greenMid : "#ede8df",
             color: view === id ? "#fff" : "#8a7a5a",
-            fontSize:12, fontFamily:"Lora,serif", fontWeight: view === id ? 600 : 400, cursor:"pointer",
+            fontSize:12, fontFamily:"'Inter',sans-serif", fontWeight: view === id ? 600 : 400, cursor:"pointer",
           }}>{label}</button>
         ))}
       </div>
@@ -210,7 +210,7 @@ export default function Seguimiento() {
                   flex:1, padding:"8px 4px", borderRadius:8, border:"none",
                   background: isSelected ? S.greenMid : "#ede8df",
                   color: isSelected ? "#fff" : isFuture ? "#c0b8a8" : S.brownMid,
-                  fontSize:10, fontFamily:"Lora,serif",
+                  fontSize:10, fontFamily:"'Inter',sans-serif",
                   fontWeight: isSelected ? 700 : 400,
                   cursor:"pointer", position:"relative",
                 }}>
@@ -288,7 +288,7 @@ export default function Seguimiento() {
                             padding:"6px 10px", borderRadius:8, border:`1px solid ${S.tan}`,
                             background: log ? S.greenLight : "#ede8df",
                             color: log ? S.greenMid : "#8a7a5a",
-                            fontSize:11, fontFamily:"Lora,serif", cursor:"pointer", flexShrink:0,
+                            fontSize:11, fontFamily:"'Inter',sans-serif", cursor:"pointer", flexShrink:0,
                           }}>
                             {log ? "Editar" : "Registrar"}
                           </button>
@@ -309,7 +309,7 @@ export default function Seguimiento() {
           {/* Adherence ring */}
           <div style={{ background:"#fff", border:`1.5px solid ${S.tan}`, borderRadius:12, padding:"20px", marginBottom:12, textAlign:"center" }}>
             <div style={{ fontSize:11, letterSpacing:"2px", textTransform:"uppercase", color:"#a09080", marginBottom:10 }}>Adherencia semanal</div>
-            <div style={{ fontSize:52, fontWeight:900, color: adherencePct >= 80 ? S.greenMid : adherencePct >= 50 ? S.yellow : S.red, fontFamily:"'Playfair Display',serif" }}>
+            <div style={{ fontSize:52, fontWeight:900, color: adherencePct >= 80 ? S.greenMid : adherencePct >= 50 ? S.yellow : S.red, fontFamily:"'Inter',sans-serif" }}>
               {adherencePct !== null ? `${adherencePct}%` : "—"}
             </div>
             <div style={{ fontSize:12, color:"#a09080", marginTop:4 }}>
@@ -326,7 +326,7 @@ export default function Seguimiento() {
             ].map(({ label, value, color }) => (
               <div key={label} style={{ background:"#fff", border:`1.5px solid ${S.tan}`, borderRadius:10, padding:"12px 8px", textAlign:"center" }}>
                 <div style={{ width:12, height:12, borderRadius:"50%", background: color, margin:"0 auto 6px" }}/>
-                <div style={{ fontSize:20, fontWeight:900, color, fontFamily:"'Playfair Display',serif" }}>{value}</div>
+                <div style={{ fontSize:20, fontWeight:900, color, fontFamily:"'Inter',sans-serif" }}>{value}</div>
                 <div style={{ fontSize:10, color:"#a09080" }}>{label}</div>
               </div>
             ))}
@@ -420,7 +420,7 @@ export default function Seguimiento() {
                   opacity: saving ? 0.6 : 1,
                 }}>
                   <div style={{ width:14, height:14, borderRadius:"50%", background: color, flexShrink:0 }}/>
-                  <span style={{ fontSize:14, fontFamily:"Lora,serif", fontWeight:600, color }}>{label}</span>
+                  <span style={{ fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:600, color }}>{label}</span>
                 </button>
               ))}
             </div>
@@ -437,7 +437,7 @@ export default function Seguimiento() {
                   style={{
                     width:"100%", padding:"10px 12px", borderRadius:8,
                     border:`1px solid ${S.tan}`, fontSize:13,
-                    fontFamily:"Lora,serif", color: altForm.recipeName ? S.brownDark : "#a09080",
+                    fontFamily:"'Inter',sans-serif", color: altForm.recipeName ? S.brownDark : "#a09080",
                     background: S.cream, outline:"none", appearance:"none",
                   }}
                 >
@@ -463,7 +463,7 @@ export default function Seguimiento() {
                     style={{
                       width:"100%", padding:"10px 12px", borderRadius:8,
                       border:`1px solid ${S.greenMid}`, fontSize:13,
-                      fontFamily:"Lora,serif", color: S.brownDark,
+                      fontFamily:"'Inter',sans-serif", color: S.brownDark,
                       background: S.cream, outline:"none",
                     }}
                   />
@@ -484,7 +484,7 @@ export default function Seguimiento() {
                     style={{
                       width:"100%", padding:"10px 12px", borderRadius:8,
                       border:`1px solid ${S.tan}`, fontSize:13,
-                      fontFamily:"Lora,serif", color: S.brownDark,
+                      fontFamily:"'Inter',sans-serif", color: S.brownDark,
                       background: S.cream, outline:"none",
                     }}
                   />
@@ -498,7 +498,7 @@ export default function Seguimiento() {
                   background: (altForm.recipeName && (altForm.recipeName !== "__new__" || altForm.customRecipeName)) ? `linear-gradient(135deg,${S.greenMid},#2c5020)` : "#ede8df",
                   color: (altForm.recipeName && (altForm.recipeName !== "__new__" || altForm.customRecipeName)) ? "#fff" : "#a09080",
                   border:"none", borderRadius:10,
-                  fontSize:14, fontFamily:"'Playfair Display',serif", fontWeight:700,
+                  fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:700,
                   cursor: (altForm.recipeName && (altForm.recipeName !== "__new__" || altForm.customRecipeName)) ? "pointer" : "not-allowed",
                 }}
               >
