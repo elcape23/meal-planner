@@ -33,6 +33,13 @@ export default function MealPlanner() {
   const [printModal,     setPrintModal]     = useState(false);
   const [exporting,      setExporting]      = useState(false);
   const [menuOpen,       setMenuOpen]       = useState(false);
+  const [menuClosing,    setMenuClosing]    = useState(false);
+
+  const openMenu  = () => { setMenuClosing(false); setMenuOpen(true); };
+  const closeMenu = () => {
+    setMenuClosing(true);
+    setTimeout(() => { setMenuOpen(false); setMenuClosing(false); }, 250);
+  };
 
   const toggleCheck = (n) => setChecked(p => ({ ...p, [n]: !p[n] }));
 
@@ -108,7 +115,7 @@ export default function MealPlanner() {
             </h1>
             <p style={{ fontSize:12, color:"#6a8a5a", fontStyle:"italic" }}>Almuerzo & Cena · 1 porción · Lunes a Viernes</p>
           </div>
-          <button onClick={() => setMenuOpen(true)} style={{
+          <button onClick={openMenu} style={{
             background:"rgba(255,255,255,0.1)", border:"none", borderRadius:10,
             width:42, height:42, display:"flex", flexDirection:"column",
             alignItems:"center", justifyContent:"center", gap:5,
@@ -123,32 +130,42 @@ export default function MealPlanner() {
 
       {/* Burger menu drawer */}
       {menuOpen && (
-        <div style={{ position:"fixed", inset:0, zIndex:2000, display:"flex" }}>
+        <div style={{ position:"fixed", inset:0, zIndex:2000, display:"flex", justifyContent:"flex-end" }}>
           {/* Backdrop */}
-          <div onClick={() => setMenuOpen(false)} style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.45)" }}/>
+          <div
+            onClick={closeMenu}
+            className={menuClosing ? "sheet-backdrop-out" : "sheet-backdrop-in"}
+            style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.45)" }}
+          />
           {/* Drawer */}
-          <div style={{
-            position:"relative", width:260, height:"100%",
-            background: S.cream, display:"flex", flexDirection:"column",
-            boxShadow:"4px 0 24px rgba(0,0,0,0.18)",
-          }}>
+          <div
+            className={menuClosing ? "sheet-slide-out" : "sheet-slide-in"}
+            style={{
+              position:"relative", width:280, height:"100%",
+              background: S.cream, display:"flex", flexDirection:"column",
+              boxShadow:"-4px 0 24px rgba(0,0,0,0.18)",
+            }}
+          >
             {/* Drawer header */}
-            <div style={{ background:"linear-gradient(155deg,#2c4a1e,#1a2e12)", padding:"28px 20px 22px" }}>
-              <div style={{ fontSize:9, letterSpacing:"3px", color:"#8ab87a", textTransform:"uppercase", marginBottom:6 }}>Plan Nutricional</div>
-              <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, fontWeight:900, color:"#f5f0e8" }}>Ledesma Juan José</div>
+            <div style={{ background:"linear-gradient(155deg,#2c4a1e,#1a2e12)", padding:"28px 20px 22px", display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
+              <div>
+                <div style={{ fontSize:9, letterSpacing:"3px", color:"#8ab87a", textTransform:"uppercase", marginBottom:6 }}>Plan Nutricional</div>
+                <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, fontWeight:900, color:"#f5f0e8" }}>Ledesma Juan José</div>
+              </div>
+              <button onClick={closeMenu} style={{ background:"rgba(255,255,255,0.12)", border:"none", borderRadius:8, width:32, height:32, color:"#f5f0e8", fontSize:16, cursor:"pointer", flexShrink:0 }}>✕</button>
             </div>
             {/* Nav items */}
             <nav style={{ flex:1, padding:"12px 0" }}>
               {[
-                { id:"planner",     label:"Semana",       icon:"📅", sublabel:"Plan semanal" },
-                { id:"lista",       label:"Lista",        icon:"🛒", sublabel: total > 0 ? `${total} ingredientes` : "Lista de compras" },
-                { id:"recetas",     label:"Recetas",      icon:"📖", sublabel:"Ver todas las recetas" },
-                { id:"seguimiento", label:"Seguimiento",  icon:"📈", sublabel:"Registro diario" },
+                { id:"planner",     label:"Semana",      icon:"📅", sublabel:"Plan semanal" },
+                { id:"lista",       label:"Lista",       icon:"🛒", sublabel: total > 0 ? `${total} ingredientes` : "Lista de compras" },
+                { id:"recetas",     label:"Recetas",     icon:"📖", sublabel:"Ver todas las recetas" },
+                { id:"seguimiento", label:"Seguimiento", icon:"📈", sublabel:"Registro diario" },
               ].map(item => (
-                <button key={item.id} onClick={() => { setTab(item.id); setMenuOpen(false); }} style={{
+                <button key={item.id} onClick={() => { setTab(item.id); closeMenu(); }} style={{
                   width:"100%", padding:"14px 22px", border:"none",
                   display:"flex", alignItems:"center", gap:14, cursor:"pointer",
-                  borderLeft: tab === item.id ? `3px solid ${S.greenMid}` : "3px solid transparent",
+                  borderRight: tab === item.id ? `3px solid ${S.greenMid}` : "3px solid transparent",
                   background: tab === item.id ? S.greenLight : "none",
                 }}>
                   <span style={{ fontSize:20 }}>{item.icon}</span>
@@ -159,14 +176,6 @@ export default function MealPlanner() {
                 </button>
               ))}
             </nav>
-            {/* Close button */}
-            <div style={{ padding:"16px 22px 32px" }}>
-              <button onClick={() => setMenuOpen(false)} style={{
-                width:"100%", padding:"11px", background:"#ede8df", border:"none",
-                borderRadius:9, fontSize:13, fontFamily:"Lora,serif",
-                color: S.brownMid, cursor:"pointer",
-              }}>Cerrar</button>
-            </div>
           </div>
         </div>
       )}

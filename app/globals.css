@@ -17,3 +17,28 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 .fade-in { animation: fadeIn 0.25s ease forwards; }
+
+/* Sheet — backdrop */
+@keyframes sheet-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes sheet-backdrop-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* Sheet — drawer slide from right */
+@keyframes sheet-slide-in {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes sheet-slide-out {
+  from { transform: translateX(0); }
+  to   { transform: translateX(100%); }
+}
+
+.sheet-backdrop-in  { animation: sheet-backdrop-in  0.3s cubic-bezier(0.16,1,0.3,1) forwards; }
+.sheet-backdrop-out { animation: sheet-backdrop-out 0.25s cubic-bezier(0.16,1,0.3,1) forwards; }
+.sheet-slide-in     { animation: sheet-slide-in  0.35s cubic-bezier(0.16,1,0.3,1) forwards; }
+.sheet-slide-out    { animation: sheet-slide-out 0.25s cubic-bezier(0.16,1,0.3,1) forwards; }
