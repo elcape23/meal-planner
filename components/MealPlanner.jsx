@@ -26,7 +26,7 @@ export default function MealPlanner() {
   const [plannerDay,     setPlannerDay]     = useState(todayPlannerIdx);
   const [checked,        setChecked]        = useState({});
   const [tab,            setTab]            = useState("planner");
-  const [ingredientsOpen, setIngredientsOpen] = useState(false);
+  const [ingredientsOpen, setIngredientsOpen] = useState(null);
   const [expandedRecipe, setExpandedRecipe] = useState(null);
   const [printModal,     setPrintModal]     = useState(false);
   const [exporting,      setExporting]      = useState(false);
@@ -140,7 +140,7 @@ export default function MealPlanner() {
                 const isToday    = i === todayPlannerIdx();
                 const isSelected = i === plannerDay;
                 return (
-                  <button key={i} onClick={() => { setPlannerDay(i); setIngredientsOpen(false); }} style={{
+                  <button key={i} onClick={() => { setPlannerDay(i); setIngredientsOpen(null); }} style={{
                     flex:1, padding:"8px 4px", borderRadius:8, border:"none",
                     background: isSelected ? S.greenMid : "#ede8df",
                     color: isSelected ? "#fff" : S.brownMid,
@@ -161,40 +161,34 @@ export default function MealPlanner() {
               })}
             </div>
 
-            {/* Selected day card */}
+            {/* Selected day — one card per meal */}
             {(() => {
               const d = DAYS[plannerDay];
               return (
-                <div style={{ background:"#fff", border:`1.5px solid #c8dfc0`, borderRadius:12, overflow:"hidden" }}>
-                  {/* Header */}
-                  <div style={{ padding:"13px 15px", display:"flex", alignItems:"center", gap:11, cursor:"pointer" }}
-                    onClick={() => setIngredientsOpen(o => !o)}>
-                    <div style={{
-                      width:34, height:34, borderRadius:7, flexShrink:0,
-                      background: S.greenLight,
-                      display:"flex", alignItems:"center", justifyContent:"center",
-                      fontSize:11, fontWeight:700, color: S.greenMid, fontFamily:"Lora,serif",
-                    }}>
-                      {d.short}
-                    </div>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontSize:12, color:"#4a7a38", lineHeight:1.4 }}>
-                        {RECIPES[d.almuerzo].emoji} {RECIPES[d.almuerzo].name}
-                      </div>
-                      <div style={{ fontSize:12, color: S.brownMid, marginTop:3, lineHeight:1.4 }}>
-                        {RECIPES[d.cena].emoji} {RECIPES[d.cena].name}
-                      </div>
-                    </div>
-                    <span style={{ fontSize:13, color:"#a09080", transform: ingredientsOpen ? "rotate(180deg)" : "none", transition:"transform 0.2s" }}>▾</span>
-                  </div>
-
-                  {ingredientsOpen && (
-                    <div style={{ borderTop:"1px solid #eee", padding:"12px 15px", background:"#fcfaf7" }}>
-                      {["almuerzo","cena"].map(meal => {
-                        const r = RECIPES[d[meal]];
-                        return (
-                          <div key={meal} style={{ marginBottom:10 }}>
-                            <div style={{ fontSize:10, letterSpacing:"1.5px", textTransform:"uppercase", color:"#8a7a5a", marginBottom:6 }}>{meal}</div>
+                <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
+                  {["almuerzo","cena"].map(meal => {
+                    const r    = RECIPES[d[meal]];
+                    const open = ingredientsOpen === meal;
+                    return (
+                      <div key={meal} style={{ background:"#fff", border:`1.5px solid #c8dfc0`, borderRadius:12, overflow:"hidden" }}>
+                        <div style={{ padding:"13px 15px", display:"flex", alignItems:"center", gap:11, cursor:"pointer" }}
+                          onClick={() => setIngredientsOpen(open ? null : meal)}>
+                          <div style={{
+                            width:34, height:34, borderRadius:7, flexShrink:0,
+                            background: S.greenLight,
+                            display:"flex", alignItems:"center", justifyContent:"center",
+                            fontSize:18,
+                          }}>
+                            {r.emoji}
+                          </div>
+                          <div style={{ flex:1 }}>
+                            <div style={{ fontSize:10, letterSpacing:"1.5px", textTransform:"uppercase", color:"#8a7a5a", marginBottom:3 }}>{meal}</div>
+                            <div style={{ fontSize:13, fontWeight:600, color: S.brownDark, lineHeight:1.3 }}>{r.name}</div>
+                          </div>
+                          <span style={{ fontSize:13, color:"#a09080", transform: open ? "rotate(180deg)" : "none", transition:"transform 0.2s" }}>▾</span>
+                        </div>
+                        {open && (
+                          <div style={{ borderTop:"1px solid #eee", padding:"12px 15px", background:"#fcfaf7" }}>
                             {r.ingredients.map(ing => (
                               <div key={ing.name} style={{ display:"flex", justifyContent:"space-between", fontSize:12, padding:"4px 0", borderBottom:`1px solid ${S.brownLight}`, color: S.brownDark }}>
                                 <span>{ing.name}</span>
@@ -202,10 +196,10 @@ export default function MealPlanner() {
                               </div>
                             ))}
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })()}
@@ -296,6 +290,18 @@ export default function MealPlanner() {
                 })}
               </>
             )}
+
+            {/* Bottom CTAs */}
+            <div style={{ marginTop:18, display:"flex", flexDirection:"column", gap:8 }}>
+              <button onClick={() => setPrintModal(true)} style={{
+                width:"100%", padding:"14px",
+                background:`linear-gradient(135deg,${S.greenMid},#2c5020)`,
+                color:"#fff", border:"none", borderRadius:10,
+                fontSize:15, fontFamily:"'Playfair Display',serif", fontWeight:700, cursor:"pointer",
+              }}>
+                📄 Exportar recetas (semana completa)
+              </button>
+            </div>
           </div>
         )}
 
