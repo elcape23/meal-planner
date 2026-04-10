@@ -261,7 +261,7 @@ export default function Seguimiento() {
                       <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
                         <div style={{ flex:1 }}>
                           <div style={{ fontSize:10, letterSpacing:"1px", textTransform:"uppercase", color:"#a09080", marginBottom:3 }}>
-                            {icon} {mealLabel}
+                            {mealLabel}
                           </div>
                           <div style={{ fontSize:12, color: S.brownDark, marginBottom: log ? 4 : 0 }}>
                             {planned ? planned.name : <span style={{ fontStyle:"italic", color:"#a09080" }}>Sin plan específico</span>}
