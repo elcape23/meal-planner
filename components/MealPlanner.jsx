@@ -197,7 +197,7 @@ export default function MealPlanner() {
 
             {/* Weekly progress card */}
             {(() => {
-              const allLogs   = Object.values(weekLogs).flatMap(day => Object.values(day));
+              const allLogs   = Object.values(weekLogs).flatMap(day => Object.values(day)).filter(l => l.meal === "almuerzo" || l.meal === "cena");
               const onPlan    = allLogs.filter(l => l.status === "plan").length;
               const altMeals  = allLogs.filter(l => l.status === "alternative").length;
               const total     = allLogs.length;
