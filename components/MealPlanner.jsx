@@ -240,7 +240,7 @@ export default function MealPlanner() {
               const sunday = new Date(today);
               sunday.setDate(today.getDate() - todayIdx);
               sunday.setHours(0, 0, 0, 0);
-              const DAY_LETTERS = ["S","M","T","W","T","F","S"];
+              const DAY_LETTERS = ["D","L","M","M","J","V","S"];
               const isWeekend = (i) => i === 0 || i === 6;
               const ORANGE = "#f5a623";
               return (
