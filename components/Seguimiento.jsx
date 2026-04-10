@@ -64,7 +64,7 @@ export default function Seguimiento() {
   const [logs,        setLogs]        = useState({}); // { "2024-01-01": { almuerzo: {...}, cena: {...} } }
   const [loading,     setLoading]     = useState(true);
   const [checkinDay,  setCheckinDay]  = useState(null); // { date, dayIdx, meal }
-  const [altForm,     setAltForm]     = useState({ recipeName: "", ingredients: "", notes: "" });
+  const [altForm,     setAltForm]     = useState({ recipeName: "", customRecipeName: "", ingredients: "", notes: "" });
   const [saving,      setSaving]      = useState(false);
   const [view,        setView]        = useState("week"); // "week" | "summary"
 
@@ -101,7 +101,7 @@ export default function Seguimiento() {
   };
 
   const openCheckin = (date, dayIdx, meal) => {
-    setAltForm({ recipeName: "", ingredients: "", notes: "" });
+    setAltForm({ recipeName: "", customRecipeName: "", ingredients: "", notes: "" });
     setCheckinDay({ date, dayIdx, meal });
   };
 
@@ -116,7 +116,7 @@ export default function Seguimiento() {
       date,
       meal,
       status,
-      recipe_name:  status === "plan" && planned ? planned.name : (altForm.recipeName || null),
+      recipe_name:  status === "plan" && planned ? planned.name : (altForm.recipeName === "__new__" ? altForm.customRecipeName : altForm.recipeName) || null,
       ingredients:  status === "alternative" ? altForm.ingredients : null,
       notes:        altForm.notes || null,
     };
@@ -373,10 +373,50 @@ export default function Seguimiento() {
             {/* Alternative form */}
             <div style={{ background:"#fff", border:`1.5px solid ${S.tan}`, borderRadius:12, padding:"16px" }}>
               <div style={{ fontSize:11, letterSpacing:"1.5px", textTransform:"uppercase", color:"#a09080", marginBottom:12 }}>Detalle de comida alternativa</div>
+              {/* Recipe selector */}
+              <div style={{ marginBottom:10 }}>
+                <div style={{ fontSize:11, color:"#a09080", marginBottom:4 }}>Nombre de la comida</div>
+                <select
+                  value={altForm.recipeName}
+                  onChange={e => setAltForm(p => ({ ...p, recipeName: e.target.value, customRecipeName: "" }))}
+                  style={{
+                    width:"100%", padding:"10px 12px", borderRadius:8,
+                    border:`1px solid ${S.tan}`, fontSize:13,
+                    fontFamily:"Lora,serif", color: altForm.recipeName ? S.brownDark : "#a09080",
+                    background: S.cream, outline:"none", appearance:"none",
+                  }}
+                >
+                  <option value="">Seleccioná una receta...</option>
+                  {Object.values(RECIPES).map(r => (
+                    <option key={r.name} value={r.name}>{r.emoji} {r.name}</option>
+                  ))}
+                  <option value="__new__">+ Agregar nueva receta</option>
+                </select>
+              </div>
+
+              {/* Custom recipe name input — only shown when "new" is selected */}
+              {altForm.recipeName === "__new__" && (
+                <div style={{ marginBottom:10 }}>
+                  <div style={{ fontSize:11, color:"#a09080", marginBottom:4 }}>Nombre de la nueva receta</div>
+                  <input
+                    value={altForm.customRecipeName}
+                    onChange={e => setAltForm(p => ({ ...p, customRecipeName: e.target.value }))}
+                    placeholder="Ej: Milanesa con ensalada"
+                    autoFocus
+                    style={{
+                      width:"100%", padding:"10px 12px", borderRadius:8,
+                      border:`1px solid ${S.greenMid}`, fontSize:13,
+                      fontFamily:"Lora,serif", color: S.brownDark,
+                      background: S.cream, outline:"none",
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Ingredients & notes */}
               {[
-                { key:"recipeName",   label:"Nombre de la comida",  placeholder:"Ej: Milanesa con ensalada" },
-                { key:"ingredients",  label:"Ingredientes (opcional)", placeholder:"Ej: Milanesa 200g, lechuga, tomate" },
-                { key:"notes",        label:"Notas (opcional)",       placeholder:"Ej: Comí afuera con amigos" },
+                { key:"ingredients", label:"Ingredientes (opcional)", placeholder:"Ej: Milanesa 200g, lechuga, tomate" },
+                { key:"notes",       label:"Notas (opcional)",        placeholder:"Ej: Comí afuera con amigos" },
               ].map(({ key, label, placeholder }) => (
                 <div key={key} style={{ marginBottom:10 }}>
                   <div style={{ fontSize:11, color:"#a09080", marginBottom:4 }}>{label}</div>
@@ -395,14 +435,14 @@ export default function Seguimiento() {
               ))}
               <button
                 onClick={() => saveLog("alternative")}
-                disabled={saving || !altForm.recipeName}
+                disabled={saving || !altForm.recipeName || (altForm.recipeName === "__new__" && !altForm.customRecipeName)}
                 style={{
                   width:"100%", marginTop:4, padding:"12px",
-                  background: altForm.recipeName ? `linear-gradient(135deg,${S.greenMid},#2c5020)` : "#ede8df",
-                  color: altForm.recipeName ? "#fff" : "#a09080",
+                  background: (altForm.recipeName && (altForm.recipeName !== "__new__" || altForm.customRecipeName)) ? `linear-gradient(135deg,${S.greenMid},#2c5020)` : "#ede8df",
+                  color: (altForm.recipeName && (altForm.recipeName !== "__new__" || altForm.customRecipeName)) ? "#fff" : "#a09080",
                   border:"none", borderRadius:10,
                   fontSize:14, fontFamily:"'Playfair Display',serif", fontWeight:700,
-                  cursor: altForm.recipeName ? "pointer" : "not-allowed",
+                  cursor: (altForm.recipeName && (altForm.recipeName !== "__new__" || altForm.customRecipeName)) ? "pointer" : "not-allowed",
                 }}
               >
                 {saving ? "Guardando..." : "Guardar comida alternativa"}
