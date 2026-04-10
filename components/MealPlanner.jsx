@@ -228,6 +228,50 @@ export default function MealPlanner() {
               </button>
             </div>
 
+            {/* Week strip */}
+            {(() => {
+              const today = new Date();
+              const dow = today.getDay(); // 0=Sun
+              const sunday = new Date(today);
+              sunday.setDate(today.getDate() - dow);
+              sunday.setHours(0, 0, 0, 0);
+              const DAY_LETTERS = ["S","M","T","W","T","F","S"];
+              const isWeekend = (i) => i === 0 || i === 6;
+              return (
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:24 }}>
+                  {Array.from({ length: 7 }, (_, i) => {
+                    const d = new Date(sunday);
+                    d.setDate(sunday.getDate() + i);
+                    const isToday = d.toDateString() === today.toDateString();
+                    const dateNum = d.getDate().toString().padStart(2, "0");
+                    return (
+                      <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
+                        <div style={{
+                          width:30, height:30, borderRadius:"50%",
+                          display:"flex", alignItems:"center", justifyContent:"center",
+                          border: isToday ? "1.5px dashed #e57373" : "none",
+                          background: isToday ? "rgba(229,115,115,0.07)" : "transparent",
+                        }}>
+                          <span style={{
+                            fontSize:12, fontWeight: isToday ? 700 : 500,
+                            color: isToday ? "#e57373" : isWeekend(i) ? "#c0b8a8" : S.brownMid,
+                          }}>
+                            {DAY_LETTERS[i]}
+                          </span>
+                        </div>
+                        <span style={{
+                          fontSize:11, fontWeight: isToday ? 700 : 400,
+                          color: isToday ? "#e57373" : isWeekend(i) ? "#c0b8a8" : S.brownMid,
+                        }}>
+                          {dateNum}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
             {/* Weekly progress card */}
             {(() => {
               const allLogs   = Object.values(weekLogs).flatMap(day => Object.values(day)).filter(l => l.meal === "almuerzo" || l.meal === "cena");
