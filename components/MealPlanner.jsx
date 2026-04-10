@@ -31,7 +31,6 @@ function currentWeekDates() {
   });
 }
 
-const PLANNED_MEALS = ["almuerzo", "cena"];
 
 const MEAL_CATEGORY = {
   desayuno: "desayuno_merienda",
@@ -90,17 +89,6 @@ export default function MealPlanner() {
     });
   }, []);
 
-  const plannedLogsForDate = (date) =>
-    PLANNED_MEALS.map(m => weekLogs[date]?.[m]).filter(Boolean);
-
-  const dayStatus = (date) => {
-    const vals = plannedLogsForDate(date);
-    if (vals.length === 0) return "none";
-    if (vals.every(l => l.status === "plan")) return "green";
-    if (vals.every(l => l.status === "skipped")) return "grey";
-    if (vals.some(l => l.status === "plan")) return "yellow";
-    return "yellow";
-  };
   const [expandedRecipe, setExpandedRecipe] = useState(null);
   const [recipeCat,      setRecipeCat]      = useState("almuerzo_cena");
   const [printModal,     setPrintModal]     = useState(false);
@@ -209,17 +197,13 @@ export default function MealPlanner() {
 
             {/* Weekly progress card */}
             {(() => {
-              const dates   = currentWeekDates();
-              const daysOn  = dates.filter(d => dayStatus(d) === "green").length;
-              const partial = dates.filter(d => dayStatus(d) === "yellow").length;
-              const done    = daysOn + partial;
-              const total5  = 5;
+              const allLogs   = Object.values(weekLogs).flatMap(day => Object.values(day));
+              const onPlan    = allLogs.filter(l => l.status === "plan").length;
+              const altMeals  = allLogs.filter(l => l.status === "alternative").length;
+              const total     = allLogs.length;
+              const pct       = total > 0 ? Math.round((onPlan / total) * 100) : 0;
               const r = 28, circ = 2 * Math.PI * r;
-              const offset = circ * (1 - done / total5);
-
-              const allLogs = Object.values(weekLogs).flatMap(day => Object.values(day));
-              const onPlan  = allLogs.filter(l => l.status === "plan").length;
-              const altMeals = allLogs.filter(l => l.status === "alternative").length;
+              const offset    = circ * (1 - pct / 100);
 
               return (
                 <div style={{ background: S.greenLight, borderRadius:16, padding:"16px 18px", marginBottom:24, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
@@ -250,8 +234,8 @@ export default function MealPlanner() {
                       transform="rotate(-90 36 36)"
                       style={{ transition:"stroke-dashoffset 0.6s ease" }}
                     />
-                    <text x={36} y={33} textAnchor="middle" fontSize={16} fontWeight={800} fill={S.greenDark}>{done}</text>
-                    <text x={36} y={46} textAnchor="middle" fontSize={9} fill={S.greenMid}>días</text>
+                    <text x={36} y={32} textAnchor="middle" fontSize={14} fontWeight={800} fill={S.greenDark}>{pct}%</text>
+                    <text x={36} y={45} textAnchor="middle" fontSize={8} fill={S.greenMid}>del plan</text>
                   </svg>
                 </div>
               );
