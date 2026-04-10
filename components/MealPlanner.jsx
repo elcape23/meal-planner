@@ -16,26 +16,27 @@ const S = {
   brownLight: "#f5f0e8",
 };
 
+function todayPlannerIdx() {
+  const day = new Date().getDay(); // 0=Sun
+  if (day === 0 || day === 6) return 0;
+  return day - 1; // Mon=0 … Fri=4
+}
+
 export default function MealPlanner() {
-  const [selectedDays,   setSelectedDays]   = useState([0,1,2,3,4]);
-  const [meals,          setMeals]          = useState({ almuerzo: true, cena: true });
+  const [plannerDay,     setPlannerDay]     = useState(todayPlannerIdx);
   const [checked,        setChecked]        = useState({});
   const [tab,            setTab]            = useState("planner");
-  const [expandedDay,    setExpandedDay]    = useState(null);
+  const [ingredientsOpen, setIngredientsOpen] = useState(false);
   const [expandedRecipe, setExpandedRecipe] = useState(null);
   const [printModal,     setPrintModal]     = useState(false);
   const [exporting,      setExporting]      = useState(false);
 
-  const toggleDay   = (i) => setSelectedDays(p => p.includes(i) ? p.filter(d => d !== i) : [...p,i].sort());
-  const toggleMeal  = (m) => setMeals(p => ({ ...p, [m]: !p[m] }));
   const toggleCheck = (n) => setChecked(p => ({ ...p, [n]: !p[n] }));
 
   const shoppingList = useMemo(() => {
     const totals = {};
-    selectedDays.forEach(idx => {
-      const d = DAYS[idx];
+    DAYS.forEach(d => {
       ["almuerzo","cena"].forEach(meal => {
-        if (!meals[meal]) return;
         RECIPES[d[meal]].ingredients.forEach(({ name, amount, unit }) => {
           if (!totals[name]) totals[name] = { amount: 0, unit };
           totals[name].amount += amount;
@@ -45,7 +46,7 @@ export default function MealPlanner() {
     return Object.entries(totals).map(([name, { amount, unit }]) => ({
       name, amount, unit, cat: getCat(name),
     }));
-  }, [selectedDays, meals]);
+  }, []);
 
   const grouped = useMemo(() => {
     const g = {};
@@ -59,20 +60,22 @@ export default function MealPlanner() {
   const total        = shoppingList.length;
   const checkedCount = Object.values(checked).filter(Boolean).length;
 
+  const allDayIndices = [0,1,2,3,4];
+
   const handleExport = async () => {
     setExporting(true);
     try {
       const res = await fetch("/api/export-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selectedDays, meals }),
+        body: JSON.stringify({ selectedDays: allDayIndices, meals: { almuerzo: true, cena: true } }),
       });
       if (!res.ok) throw new Error("PDF generation failed");
       const blob = await res.blob();
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement("a");
       a.href     = url;
-      a.download = `recetas_${selectedDays.map(i => DAYS[i].short).join("-")}.pdf`;
+      a.download = `recetas_semana.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
@@ -83,13 +86,10 @@ export default function MealPlanner() {
   };
 
   const modalEntries = useMemo(() => {
-    return selectedDays.flatMap(idx => {
-      const d = DAYS[idx];
-      return ["almuerzo","cena"].filter(m => meals[m]).map(meal => ({
-        day: d.day, meal, recipe: RECIPES[d[meal]],
-      }));
-    });
-  }, [selectedDays, meals]);
+    return DAYS.flatMap((d, idx) =>
+      ["almuerzo","cena"].map(meal => ({ day: d.day, meal, recipe: RECIPES[d[meal]] }))
+    );
+  }, []);
 
   return (
     <div style={{ minHeight:"100vh", background: S.cream, fontFamily:"'Lora',Georgia,serif", color: S.brownDark }}>
@@ -134,122 +134,101 @@ export default function MealPlanner() {
         {/* ── PLANNER ── */}
         {tab === "planner" && (
           <div className="fade-in">
-            {/* Meal toggles */}
-            <div style={{ display:"flex", gap:8, marginBottom:16 }}>
-              {["almuerzo","cena"].map(m => (
-                <button key={m} onClick={() => toggleMeal(m)} style={{
-                  flex:1, padding:"9px 0", borderRadius:8, border:"none",
-                  background: meals[m] ? S.greenMid : "#ede8df",
-                  color: meals[m] ? "#fff" : "#8a7a5a",
-                  fontSize:13, fontFamily:"Lora,serif", fontWeight: meals[m] ? 600 : 400,
-                  textTransform:"capitalize", cursor:"pointer",
-                }}>
-                  {m === "almuerzo" ? "🌿 Almuerzo" : "🌙 Cena"}
-                </button>
-              ))}
-            </div>
-
-            {/* Day pills */}
-            <div style={{ display:"flex", gap:6, marginBottom:18 }}>
-              {DAYS.map((d,i) => (
-                <button key={i} onClick={() => toggleDay(i)} style={{
-                  flex:1, padding:"9px 4px", borderRadius:8, border:"none",
-                  background: selectedDays.includes(i) ? S.greenMid : "#ede8df",
-                  color: selectedDays.includes(i) ? "#fff" : "#8a7a5a",
-                  fontSize:10, fontFamily:"Lora,serif",
-                  fontWeight: selectedDays.includes(i) ? 700 : 400,
-                  letterSpacing:"0.5px", cursor:"pointer",
-                }}>
-                  {d.short}
-                </button>
-              ))}
-            </div>
-
-            {/* Day cards */}
-            <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
-              {DAYS.map((d,i) => {
-                const active = selectedDays.includes(i);
-                const open   = expandedDay === i;
+            {/* Day chips */}
+            <div style={{ display:"flex", gap:6, marginBottom:14 }}>
+              {DAYS.map((d, i) => {
+                const isToday    = i === todayPlannerIdx();
+                const isSelected = i === plannerDay;
                 return (
-                  <div key={i} style={{
-                    background: active ? "#fff" : "#f5f1eb",
-                    border:`1.5px solid ${active ? "#c8dfc0" : "#e0d8cc"}`,
-                    borderRadius:12, overflow:"hidden",
-                    opacity: active ? 1 : 0.48,
-                    transition:"all 0.18s",
+                  <button key={i} onClick={() => { setPlannerDay(i); setIngredientsOpen(false); }} style={{
+                    flex:1, padding:"8px 4px", borderRadius:8, border:"none",
+                    background: isSelected ? S.greenMid : "#ede8df",
+                    color: isSelected ? "#fff" : S.brownMid,
+                    fontSize:10, fontFamily:"Lora,serif",
+                    fontWeight: isSelected ? 700 : 400,
+                    cursor:"pointer", position:"relative",
                   }}>
-                    <div onClick={() => setExpandedDay(open ? null : i)}
-                      style={{ padding:"13px 15px", display:"flex", alignItems:"center", gap:11, cursor:"pointer" }}>
+                    {d.short}
+                    {isToday && (
                       <div style={{
-                        width:34, height:34, borderRadius:7, flexShrink:0,
-                        background: active ? S.greenLight : "#ede8df",
-                        display:"flex", alignItems:"center", justifyContent:"center",
-                        fontSize:11, fontWeight:700,
-                        color: active ? S.greenMid : "#8a7a5a",
-                        fontFamily:"Lora,serif",
-                      }}>
-                        {d.short}
-                      </div>
-                      <div style={{ flex:1 }}>
-                        {meals.almuerzo && (
-                          <div style={{ fontSize:12, color:"#4a7a38", lineHeight:1.4 }}>
-                            {RECIPES[d.almuerzo].emoji} {RECIPES[d.almuerzo].name}
-                          </div>
-                        )}
-                        {meals.cena && (
-                          <div style={{ fontSize:12, color: S.brownMid, marginTop: meals.almuerzo ? 3 : 0, lineHeight:1.4 }}>
-                            {RECIPES[d.cena].emoji} {RECIPES[d.cena].name}
-                          </div>
-                        )}
-                      </div>
-                      <span style={{ fontSize:13, color:"#a09080", display:"block", transform: open ? "rotate(180deg)" : "none", transition:"transform 0.2s" }}>▾</span>
-                    </div>
-
-                    {open && (
-                      <div style={{ borderTop:"1px solid #eee", padding:"12px 15px", background:"#fcfaf7" }}>
-                        {["almuerzo","cena"].map(meal => {
-                          if (!meals[meal]) return null;
-                          const r = RECIPES[d[meal]];
-                          return (
-                            <div key={meal} style={{ marginBottom:10 }}>
-                              <div style={{ fontSize:10, letterSpacing:"1.5px", textTransform:"uppercase", color:"#8a7a5a", marginBottom:6 }}>{meal}</div>
-                              {r.ingredients.map((ing,ii) => (
-                                <div key={ing.name} style={{ display:"flex", justifyContent:"space-between", fontSize:12, padding:"4px 0", borderBottom:`1px solid ${S.brownLight}`, color: S.brownDark }}>
-                                  <span>{ing.name}</span>
-                                  <span style={{ color: S.greenMid, fontWeight:600 }}>{fmt(ing.amount, ing.unit)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          );
-                        })}
-                      </div>
+                        position:"absolute", bottom:3, left:"50%", transform:"translateX(-50%)",
+                        width:4, height:4, borderRadius:"50%",
+                        background: isSelected ? "#fff" : S.greenMid,
+                      }}/>
                     )}
-                  </div>
+                  </button>
                 );
               })}
             </div>
 
+            {/* Selected day card */}
+            {(() => {
+              const d = DAYS[plannerDay];
+              return (
+                <div style={{ background:"#fff", border:`1.5px solid #c8dfc0`, borderRadius:12, overflow:"hidden" }}>
+                  {/* Header */}
+                  <div style={{ padding:"13px 15px", display:"flex", alignItems:"center", gap:11, cursor:"pointer" }}
+                    onClick={() => setIngredientsOpen(o => !o)}>
+                    <div style={{
+                      width:34, height:34, borderRadius:7, flexShrink:0,
+                      background: S.greenLight,
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      fontSize:11, fontWeight:700, color: S.greenMid, fontFamily:"Lora,serif",
+                    }}>
+                      {d.short}
+                    </div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:12, color:"#4a7a38", lineHeight:1.4 }}>
+                        {RECIPES[d.almuerzo].emoji} {RECIPES[d.almuerzo].name}
+                      </div>
+                      <div style={{ fontSize:12, color: S.brownMid, marginTop:3, lineHeight:1.4 }}>
+                        {RECIPES[d.cena].emoji} {RECIPES[d.cena].name}
+                      </div>
+                    </div>
+                    <span style={{ fontSize:13, color:"#a09080", transform: ingredientsOpen ? "rotate(180deg)" : "none", transition:"transform 0.2s" }}>▾</span>
+                  </div>
+
+                  {ingredientsOpen && (
+                    <div style={{ borderTop:"1px solid #eee", padding:"12px 15px", background:"#fcfaf7" }}>
+                      {["almuerzo","cena"].map(meal => {
+                        const r = RECIPES[d[meal]];
+                        return (
+                          <div key={meal} style={{ marginBottom:10 }}>
+                            <div style={{ fontSize:10, letterSpacing:"1.5px", textTransform:"uppercase", color:"#8a7a5a", marginBottom:6 }}>{meal}</div>
+                            {r.ingredients.map(ing => (
+                              <div key={ing.name} style={{ display:"flex", justifyContent:"space-between", fontSize:12, padding:"4px 0", borderBottom:`1px solid ${S.brownLight}`, color: S.brownDark }}>
+                                <span>{ing.name}</span>
+                                <span style={{ color: S.greenMid, fontWeight:600 }}>{fmt(ing.amount, ing.unit)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* Bottom CTAs */}
-            {selectedDays.length > 0 && (
-              <div style={{ marginTop:18, display:"flex", flexDirection:"column", gap:8 }}>
-                <button onClick={() => setTab("lista")} style={{
-                  width:"100%", padding:"14px",
-                  background:`linear-gradient(135deg,${S.greenMid},#2c5020)`,
-                  color:"#fff", border:"none", borderRadius:10,
-                  fontSize:15, fontFamily:"'Playfair Display',serif", fontWeight:700, cursor:"pointer",
-                }}>
-                  🛒 Ver lista de compras →
-                </button>
-                <button onClick={() => setPrintModal(true)} style={{
-                  width:"100%", padding:"14px",
-                  background:"#fff", color: S.greenMid,
-                  border:`1.5px solid #c8dfc0`, borderRadius:10,
-                  fontSize:15, fontFamily:"'Playfair Display',serif", fontWeight:700, cursor:"pointer",
-                }}>
-                  📄 Exportar recetas ({DAYS.filter((_,i) => selectedDays.includes(i)).map(d => d.short).join(", ")})
-                </button>
-              </div>
-            )}
+            <div style={{ marginTop:18, display:"flex", flexDirection:"column", gap:8 }}>
+              <button onClick={() => setTab("lista")} style={{
+                width:"100%", padding:"14px",
+                background:`linear-gradient(135deg,${S.greenMid},#2c5020)`,
+                color:"#fff", border:"none", borderRadius:10,
+                fontSize:15, fontFamily:"'Playfair Display',serif", fontWeight:700, cursor:"pointer",
+              }}>
+                🛒 Ver lista de compras →
+              </button>
+              <button onClick={() => setPrintModal(true)} style={{
+                width:"100%", padding:"14px",
+                background:"#fff", color: S.greenMid,
+                border:`1.5px solid #c8dfc0`, borderRadius:10,
+                fontSize:15, fontFamily:"'Playfair Display',serif", fontWeight:700, cursor:"pointer",
+              }}>
+                📄 Exportar recetas (semana completa)
+              </button>
+            </div>
           </div>
         )}
 
@@ -270,7 +249,7 @@ export default function MealPlanner() {
                 }}>
                   <div>
                     <div style={{ fontSize:13, color:"#a8d5a0" }}>
-                      {selectedDays.length} día{selectedDays.length !== 1 ? "s" : ""} · {DAYS.filter((_,i) => selectedDays.includes(i)).map(d => d.short).join(", ")}
+                      5 días · {DAYS.map(d => d.short).join(", ")}
                     </div>
                     {checkedCount > 0 && <div style={{ fontSize:11, color:"#7aaa6a", marginTop:2 }}>{checkedCount} de {total} listos</div>}
                   </div>
@@ -395,7 +374,7 @@ export default function MealPlanner() {
             <div>
               <div style={{ fontSize:10, letterSpacing:"2px", color:"#8ab87a", textTransform:"uppercase", marginBottom:3 }}>Recetas</div>
               <div style={{ fontSize:16, fontWeight:900, color:"#f5f0e8", fontFamily:"'Playfair Display',serif" }}>
-                {DAYS.filter((_,i) => selectedDays.includes(i)).map(d => d.day).join(", ")}
+                {DAYS.map(d => d.day).join(", ")}
               </div>
             </div>
             <button onClick={() => setPrintModal(false)} style={{ background:"rgba(255,255,255,0.15)", border:"none", color:"#fff", width:34, height:34, borderRadius:"50%", fontSize:16, cursor:"pointer" }}>✕</button>
