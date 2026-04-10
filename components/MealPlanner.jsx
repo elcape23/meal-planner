@@ -105,21 +105,15 @@ export default function MealPlanner() {
     <div style={{ minHeight:"100vh", background: S.cream, fontFamily:"'Inter',sans-serif", color: S.brownDark }}>
 
       {/* Header */}
-      <div style={{ background:"linear-gradient(155deg,#2c4a1e,#1a2e12)", padding:"30px 20px 26px", position:"relative", overflow:"hidden" }}>
+      <div style={{ background:"linear-gradient(155deg,#2c4a1e,#1a2e12)", padding:"12px 20px", position:"relative", overflow:"hidden" }}>
         <div style={{ position:"absolute", top:-50, right:-50, width:200, height:200, borderRadius:"50%", background:"rgba(255,255,255,0.03)", pointerEvents:"none" }}/>
-        <div style={{ maxWidth:480, margin:"0 auto", display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
-          <div>
-            <div style={{ fontSize:10, letterSpacing:"3px", color:"#8ab87a", textTransform:"uppercase", marginBottom:8 }}>Plan Nutricional</div>
-            <h1 style={{ fontFamily:"'Inter',sans-serif", fontSize:26, fontWeight:900, color:"#f5f0e8", lineHeight:1.2, marginBottom:5 }}>
-              Ledesma<br/>Juan José
-            </h1>
-            <p style={{ fontSize:12, color:"#6a8a5a", fontStyle:"italic" }}>Almuerzo & Cena · 1 porción · Lunes a Viernes</p>
-          </div>
+        <div style={{ maxWidth:480, margin:"0 auto", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <div style={{ fontSize:10, letterSpacing:"3px", color:"#8ab87a", textTransform:"uppercase" }}>Plan Nutricional</div>
           <button onClick={openMenu} style={{
             background:"rgba(255,255,255,0.1)", border:"none", borderRadius:10,
             width:42, height:42, display:"flex", flexDirection:"column",
             alignItems:"center", justifyContent:"center", gap:5,
-            cursor:"pointer", flexShrink:0, marginTop:4,
+            cursor:"pointer", flexShrink:0,
           }}>
             <span style={{ display:"block", width:18, height:2, background:"#f5f0e8", borderRadius:2 }}/>
             <span style={{ display:"block", width:18, height:2, background:"#f5f0e8", borderRadius:2 }}/>
