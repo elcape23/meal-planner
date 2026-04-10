@@ -67,7 +67,7 @@ function todayPlannerIdx() {
 }
 
 export default function MealPlanner() {
-  const [plannerDay,     setPlannerDay]     = useState(todayPlannerIdx);
+  const plannerDay = todayPlannerIdx();
   const [checked,        setChecked]        = useState({});
   const [collapsedCats,  setCollapsedCats]  = useState(new Set());
   const [tab,            setTab]            = useState("planner");
@@ -283,7 +283,7 @@ export default function MealPlanner() {
                       const label = r ? r.name : meal.charAt(0).toUpperCase() + meal.slice(1);
                       return (
                         <div key={meal} style={{
-                          flexShrink:0, width:"65%", aspectRatio:"1",
+                          flexShrink:0, width:"calc(50% - 5px)", aspectRatio:"1",
                           scrollSnapAlign:"start",
                           background:"#fff",
                           border:`1.5px solid #e8e2d8`, borderRadius:16,
