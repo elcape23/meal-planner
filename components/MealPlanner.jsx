@@ -4,6 +4,10 @@ import { useState, useMemo, useEffect } from "react";
 import { RECIPES, DAYS, CATEGORIES, CAT_ICONS, fmt, getCat } from "@/lib/data";
 import Seguimiento from "@/components/Seguimiento";
 import { supabase } from "@/lib/supabase";
+import {
+  HomeIcon, BookOpenIcon, ShoppingCartIcon,
+  ClipboardDocumentListIcon, UserIcon,
+} from "@heroicons/react/24/solid";
 
 function localDateStr(date) {
   const y = date.getFullYear();
@@ -101,15 +105,6 @@ export default function MealPlanner() {
   const [recipeCat,      setRecipeCat]      = useState("almuerzo_cena");
   const [printModal,     setPrintModal]     = useState(false);
   const [exporting,      setExporting]      = useState(false);
-  const [menuOpen,       setMenuOpen]       = useState(false);
-  const [menuClosing,    setMenuClosing]    = useState(false);
-
-  const openMenu  = () => { setMenuClosing(false); setMenuOpen(true); };
-  const closeMenu = () => {
-    setMenuClosing(true);
-    setTimeout(() => { setMenuOpen(false); setMenuClosing(false); }, 250);
-  };
-
   const toggleCheck = (n) => setChecked(p => ({ ...p, [n]: !p[n] }));
 
   const saveHomeLog = async (status, overrideRecipeName = null) => {
@@ -200,74 +195,13 @@ export default function MealPlanner() {
       {/* Header */}
       <div style={{ background:"linear-gradient(155deg,#2c4a1e,#1a2e12)", padding:"12px 20px", position:"relative", overflow:"hidden" }}>
         <div style={{ position:"absolute", top:-50, right:-50, width:200, height:200, borderRadius:"50%", background:"rgba(255,255,255,0.03)", pointerEvents:"none" }}/>
-        <div style={{ maxWidth:480, margin:"0 auto", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+        <div style={{ maxWidth:480, margin:"0 auto" }}>
           <div style={{ fontSize:10, letterSpacing:"3px", color:"#8ab87a", textTransform:"uppercase" }}>Plan Nutricional</div>
-          <button onClick={openMenu} style={{
-            background:"rgba(255,255,255,0.1)", border:"none", borderRadius:10,
-            width:42, height:42, display:"flex", flexDirection:"column",
-            alignItems:"center", justifyContent:"center", gap:5,
-            cursor:"pointer", flexShrink:0,
-          }}>
-            <span style={{ display:"block", width:18, height:2, background:"#f5f0e8", borderRadius:2 }}/>
-            <span style={{ display:"block", width:18, height:2, background:"#f5f0e8", borderRadius:2 }}/>
-            <span style={{ display:"block", width:18, height:2, background:"#f5f0e8", borderRadius:2 }}/>
-          </button>
         </div>
       </div>
 
-      {/* Burger menu drawer */}
-      {menuOpen && (
-        <div style={{ position:"fixed", inset:0, zIndex:2000, display:"flex", justifyContent:"flex-end" }}>
-          {/* Backdrop */}
-          <div
-            onClick={closeMenu}
-            className={menuClosing ? "sheet-backdrop-out" : "sheet-backdrop-in"}
-            style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.45)" }}
-          />
-          {/* Drawer */}
-          <div
-            className={menuClosing ? "sheet-slide-out" : "sheet-slide-in"}
-            style={{
-              position:"relative", width:280, height:"100%",
-              background: S.cream, display:"flex", flexDirection:"column",
-              boxShadow:"-4px 0 24px rgba(0,0,0,0.18)",
-            }}
-          >
-            {/* Drawer header */}
-            <div style={{ background:"linear-gradient(155deg,#2c4a1e,#1a2e12)", padding:"28px 20px 22px", display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
-              <div>
-                <div style={{ fontSize:9, letterSpacing:"3px", color:"#8ab87a", textTransform:"uppercase", marginBottom:6 }}>Plan Nutricional</div>
-                <div style={{ fontFamily:"'Inter',sans-serif", fontSize:18, fontWeight:900, color:"#f5f0e8" }}>Ledesma Juan José</div>
-              </div>
-              <button onClick={closeMenu} style={{ background:"rgba(255,255,255,0.12)", border:"none", borderRadius:8, width:32, height:32, color:"#f5f0e8", fontSize:16, cursor:"pointer", flexShrink:0 }}>✕</button>
-            </div>
-            {/* Nav items */}
-            <nav style={{ flex:1, padding:"12px 0" }}>
-              {[
-                { id:"planner",     label:"Semana",      icon:"📅", sublabel:"Plan semanal" },
-                { id:"lista",       label:"Lista",       icon:"🛒", sublabel: total > 0 ? `${total} ingredientes` : "Lista de compras" },
-                { id:"recetas",     label:"Recetas",     icon:"📖", sublabel:"Ver todas las recetas" },
-                { id:"seguimiento", label:"Seguimiento", icon:"📈", sublabel:"Registro diario" },
-              ].map(item => (
-                <button key={item.id} onClick={() => { setTab(item.id); closeMenu(); }} style={{
-                  width:"100%", padding:"14px 22px", border:"none",
-                  display:"flex", alignItems:"center", gap:14, cursor:"pointer",
-                  borderRight: tab === item.id ? `3px solid ${S.greenMid}` : "3px solid transparent",
-                  background: tab === item.id ? S.greenLight : "none",
-                }}>
-                  <span style={{ fontSize:20 }}>{item.icon}</span>
-                  <div style={{ textAlign:"left" }}>
-                    <div style={{ fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:700, color: tab === item.id ? S.greenDark : S.brownDark }}>{item.label}</div>
-                    <div style={{ fontSize:11, color:"#a09080", marginTop:1 }}>{item.sublabel}</div>
-                  </div>
-                </button>
-              ))}
-            </nav>
-          </div>
-        </div>
-      )}
 
-      <div style={{ maxWidth:480, margin:"0 auto", padding:"20px 20px 60px" }}>
+      <div style={{ maxWidth:480, margin:"0 auto", padding:"20px 20px 90px" }}>
 
         {/* ── PLANNER ── */}
         {tab === "planner" && (
@@ -548,6 +482,14 @@ export default function MealPlanner() {
           </div>
         )}
 
+        {tab === "cuenta" && (
+          <div className="fade-in" style={{ textAlign:"center", padding:"60px 0", color:"#a09080" }}>
+            <UserIcon style={{ width:48, height:48, color:"#c0b8a8", margin:"0 auto 16px" }} />
+            <div style={{ fontSize:16, fontWeight:600, color: S.brownMid }}>Próximamente</div>
+            <div style={{ fontSize:13, marginTop:6 }}>La sección de cuenta estará disponible pronto.</div>
+          </div>
+        )}
+
       </div>
 
       {/* ── HOME CHECK-IN MODAL ── */}
@@ -758,6 +700,60 @@ export default function MealPlanner() {
           </div>
         </div>
       )}
+      {/* ── BOTTOM NAVBAR ── */}
+      {(() => {
+        const NAV = [
+          { id:"recetas",     label:"Recetas",  Icon: BookOpenIcon },
+          { id:"lista",       label:"Lista",    Icon: ShoppingCartIcon },
+          { id:"planner",     label:"Inicio",   Icon: HomeIcon, center: true },
+          { id:"seguimiento", label:"Registro", Icon: ClipboardDocumentListIcon },
+          { id:"cuenta",      label:"Cuenta",   Icon: UserIcon },
+        ];
+        return (
+          <div style={{
+            position:"fixed", bottom:0, left:0, right:0, zIndex:1000,
+            background:"#fff", borderTop:"1px solid #ede8df",
+            boxShadow:"0 -4px 20px rgba(0,0,0,0.08)",
+            display:"flex", justifyContent:"center",
+          }}>
+            <div style={{ width:"100%", maxWidth:480, display:"flex", alignItems:"center", padding:"0 8px" }}>
+              {NAV.map(({ id, label, Icon, center }) => {
+                const active = tab === id;
+                if (center) return (
+                  <div key={id} style={{ flex:1, display:"flex", justifyContent:"center", alignItems:"center" }}>
+                    <button onClick={() => setTab(id)} style={{
+                      width:56, height:56, borderRadius:"50%", border:"none",
+                      background: active
+                        ? `linear-gradient(135deg,${S.greenMid},#2c5020)`
+                        : S.greenLight,
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      cursor:"pointer", marginBottom:12,
+                      boxShadow: active ? "0 4px 16px rgba(58,107,40,0.4)" : "0 2px 8px rgba(58,107,40,0.15)",
+                      transition:"background 0.2s, box-shadow 0.2s",
+                    }}>
+                      <Icon style={{ width:26, height:26, color: active ? "#fff" : S.greenMid }} />
+                    </button>
+                  </div>
+                );
+                return (
+                  <button key={id} onClick={() => setTab(id)} style={{
+                    flex:1, display:"flex", flexDirection:"column",
+                    alignItems:"center", justifyContent:"center",
+                    gap:3, padding:"10px 0 8px", border:"none", background:"none",
+                    cursor:"pointer",
+                  }}>
+                    <Icon style={{ width:22, height:22, color: active ? S.greenMid : "#b0a898" }} />
+                    <span style={{ fontSize:10, fontWeight: active ? 700 : 500, color: active ? S.greenMid : "#b0a898", fontFamily:"'Inter',sans-serif" }}>
+                      {label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
     </div>
   );
 }
