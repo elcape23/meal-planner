@@ -18,17 +18,19 @@ const S = {
 };
 
 const MEALS = [
-  { key: "desayuno",  label: "Desayuno",  icon: "☀️" },
-  { key: "almuerzo",  label: "Almuerzo",  icon: "🌿" },
-  { key: "merienda",  label: "Merienda",  icon: "🍵" },
-  { key: "cena",      label: "Cena",      icon: "🌙" },
+  { key: "desayuno", label: "Desayuno", icon: "Desayuno" },
+  { key: "almuerzo", label: "Almuerzo", icon: "Almuerzo" },
+  { key: "merienda", label: "Merienda", icon: "Merienda" },
+  { key: "cena",     label: "Cena",     icon: "Cena"     },
 ];
 
 // Meals that have a planned recipe from the plan
 const PLANNED_MEALS = ["almuerzo", "cena"];
-  plan:        { label: "Seguí el plan",    icon: "✅", color: S.greenMid },
-  alternative: { label: "Comí otra cosa",   icon: "🔄", color: S.yellow  },
-  skipped:     { label: "No comí",          icon: "⏭️", color: "#a09080"  },
+
+const STATUS = {
+  plan:        { label: "Segui el plan",  icon: "checkmark", color: S.greenMid },
+  alternative: { label: "Comi otra cosa", icon: "swap",      color: S.yellow   },
+  skipped:     { label: "No comi",        icon: "skip",      color: "#a09080"  },
 };
 
 // Get the Monday of the current week
@@ -164,7 +166,7 @@ export default function Seguimiento() {
 
       {/* View toggle */}
       <div style={{ display:"flex", gap:6, marginBottom:18 }}>
-        {[["week","📅 Días"],["summary","📊 Resumen"]].map(([id, label]) => (
+        {[["week","Dias"],["summary","Resumen"]].map(([id, label]) => (
           <button key={id} onClick={() => setView(id)} style={{
             flex:1, padding:"8px", borderRadius:8, border:"none",
             background: view === id ? S.greenMid : "#ede8df",
@@ -218,7 +220,7 @@ export default function Seguimiento() {
                           </div>
                           {log && (
                             <div style={{ display:"flex", alignItems:"center", gap:5, marginTop:4 }}>
-                              <span style={{ fontSize:13 }}>{STATUS[log.status].icon}</span>
+                              <div style={{ width:8, height:8, borderRadius:"50%", background: STATUS[log.status].color, flexShrink:0 }}/>
                               <span style={{ fontSize:11, color: STATUS[log.status].color, fontWeight:600 }}>
                                 {log.status === "alternative" ? (log.recipe_name || "Otra comida") : STATUS[log.status].label}
                               </span>
@@ -263,12 +265,12 @@ export default function Seguimiento() {
           {/* Stats row */}
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:12 }}>
             {[
-              { label:"En plan",      value: onPlan,      color: S.greenMid, icon:"✅" },
-              { label:"Alternativa",  value: alternative, color: S.yellow,   icon:"🔄" },
-              { label:"Sin registro", value: skipped,     color:"#a09080",   icon:"⏭️" },
-            ].map(({ label, value, color, icon }) => (
+              { label:"En plan",      value: onPlan,      color: S.greenMid },
+              { label:"Alternativa",  value: alternative, color: S.yellow   },
+              { label:"Sin registro", value: skipped,     color:"#a09080"   },
+            ].map(({ label, value, color }) => (
               <div key={label} style={{ background:"#fff", border:`1.5px solid ${S.tan}`, borderRadius:10, padding:"12px 8px", textAlign:"center" }}>
-                <div style={{ fontSize:18, marginBottom:4 }}>{icon}</div>
+                <div style={{ width:12, height:12, borderRadius:"50%", background: color, margin:"0 auto 6px" }}/>
                 <div style={{ fontSize:20, fontWeight:900, color, fontFamily:"'Playfair Display',serif" }}>{value}</div>
                 <div style={{ fontSize:10, color:"#a09080" }}>{label}</div>
               </div>
@@ -292,14 +294,14 @@ export default function Seguimiento() {
                       transition:"background 0.3s",
                     }}/>
                     <div style={{ fontSize:9, color:"#a09080", marginTop:4 }}>
-                      {Object.keys(logs[date] || {}).length}/2
+                      {Object.keys(logs[date] || {}).length}/4
                     </div>
                   </div>
                 );
               })}
             </div>
             <div style={{ display:"flex", gap:12, marginTop:12, justifyContent:"center" }}>
-              {[["✅ En plan", S.greenMid],["🔄 Parcial", S.yellow],["⏭️ Sin comida","#c0b8a8"],["— Sin registro", S.tan]].map(([label, color]) => (
+              {[["En plan", S.greenMid],["Parcial", S.yellow],["Sin comida","#c0b8a8"],["Sin registro", S.tan]].map(([label, color]) => (
                 <div key={label} style={{ display:"flex", alignItems:"center", gap:4 }}>
                   <div style={{ width:10, height:10, borderRadius:3, background: color }}/>
                   <span style={{ fontSize:9, color:"#a09080" }}>{label}</span>
@@ -362,7 +364,7 @@ export default function Seguimiento() {
                   cursor:"pointer", textAlign:"left",
                   opacity: saving ? 0.6 : 1,
                 }}>
-                  <span style={{ fontSize:22 }}>{icon}</span>
+                  <div style={{ width:14, height:14, borderRadius:"50%", background: color, flexShrink:0 }}/>
                   <span style={{ fontSize:14, fontFamily:"Lora,serif", fontWeight:600, color }}>{label}</span>
                 </button>
               ))}
@@ -370,7 +372,7 @@ export default function Seguimiento() {
 
             {/* Alternative form */}
             <div style={{ background:"#fff", border:`1.5px solid ${S.tan}`, borderRadius:12, padding:"16px" }}>
-              <div style={{ fontSize:11, letterSpacing:"1.5px", textTransform:"uppercase", color:"#a09080", marginBottom:12 }}>🔄 Detalle de comida alternativa</div>
+              <div style={{ fontSize:11, letterSpacing:"1.5px", textTransform:"uppercase", color:"#a09080", marginBottom:12 }}>Detalle de comida alternativa</div>
               {[
                 { key:"recipeName",   label:"Nombre de la comida",  placeholder:"Ej: Milanesa con ensalada" },
                 { key:"ingredients",  label:"Ingredientes (opcional)", placeholder:"Ej: Milanesa 200g, lechuga, tomate" },
