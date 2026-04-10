@@ -271,18 +271,24 @@ export default function MealPlanner() {
                   <div style={{ fontSize:16, fontWeight:700, color: S.brownDark, marginBottom:12 }}>
                     ¿Qué comiste hoy?
                   </div>
-                  <div style={{ display:"flex", flexWrap:"wrap", gap:10 }}>
+                  <div style={{
+                    display:"flex", gap:10,
+                    overflowX:"auto", paddingBottom:4,
+                    scrollSnapType:"x mandatory",
+                    msOverflowStyle:"none", scrollbarWidth:"none",
+                  }}>
                     {["desayuno","almuerzo","merienda","cena"].map(meal => {
                       const r = d[meal] ? RECIPES[d[meal]] : null;
                       const emoji = r ? r.emoji : MEAL_EMOJI[meal];
                       const label = r ? r.name : meal.charAt(0).toUpperCase() + meal.slice(1);
                       return (
                         <div key={meal} style={{
-                          width:"calc(50% - 5px)", aspectRatio:"1",
+                          flexShrink:0, width:"65%", aspectRatio:"1",
+                          scrollSnapAlign:"start",
                           background:"#fff",
                           border:`1.5px solid #e8e2d8`, borderRadius:16,
                           padding:14, display:"flex", flexDirection:"column",
-                          justifyContent:"space-between", boxSizing:"border-box",
+                          justifyContent:"space-between",
                         }}>
                           <div>
                             <span style={{ fontSize:28 }}>{emoji}</span>
