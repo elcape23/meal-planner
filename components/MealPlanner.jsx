@@ -187,9 +187,17 @@ export default function MealPlanner() {
           <div className="fade-in">
 
             {/* Greeting */}
-            <div style={{ marginBottom:24 }}>
+            <div style={{ marginBottom:24, display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
               <div style={{ fontSize:32, fontWeight:900, color: S.greenDark, lineHeight:1.1 }}>
                 Hola<br/>Juan José
+              </div>
+              <div style={{
+                width:44, height:44, borderRadius:"50%",
+                background: S.greenMid, color:"#fff",
+                display:"flex", alignItems:"center", justifyContent:"center",
+                fontSize:14, fontWeight:700, flexShrink:0, marginTop:4,
+              }}>
+                JJ
               </div>
             </div>
 
@@ -202,6 +210,7 @@ export default function MealPlanner() {
               const pct       = total > 0 ? Math.round((onPlan / total) * 100) : 0;
               const r = 28, circ = 2 * Math.PI * r;
               const offset    = circ * (1 - pct / 100);
+              const chartColor = pct >= 70 ? S.greenMid : pct >= 50 ? "#f5c542" : pct >= 20 ? "#f5a623" : "#e53935";
 
               return (
                 <div style={{ background: S.greenLight, borderRadius:16, padding:"16px 18px", marginBottom:24, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
@@ -224,8 +233,8 @@ export default function MealPlanner() {
                     </div>
                   </div>
                   <svg width={72} height={72} style={{ flexShrink:0 }}>
-                    <circle cx={36} cy={36} r={r} fill="none" stroke="#c8dfc0" strokeWidth={6}/>
-                    <circle cx={36} cy={36} r={r} fill="none" stroke={S.greenMid} strokeWidth={6}
+                    <circle cx={36} cy={36} r={r} fill="none" stroke="#e8e0d0" strokeWidth={6}/>
+                    <circle cx={36} cy={36} r={r} fill="none" stroke={chartColor} strokeWidth={6}
                       strokeLinecap="round"
                       strokeDasharray={circ}
                       strokeDashoffset={offset}
@@ -278,10 +287,17 @@ export default function MealPlanner() {
                     scrollSnapType:"x mandatory",
                     msOverflowStyle:"none", scrollbarWidth:"none",
                   }}>
-                    {["desayuno","almuerzo","merienda","cena"].map(meal => {
+                    {(["desayuno","almuerzo","merienda","cena"]
+                      .slice()
+                      .sort((a, b) => {
+                        const aLogged = !!weekLogs[todayLocalStr()]?.[a];
+                        const bLogged = !!weekLogs[todayLocalStr()]?.[b];
+                        return aLogged - bLogged;
+                      })
+                    ).map(meal => {
                       const r = d[meal] ? RECIPES[d[meal]] : null;
                       const emoji = r ? r.emoji : MEAL_EMOJI[meal];
-                      const label = r ? r.name : meal.charAt(0).toUpperCase() + meal.slice(1);
+                      const label = meal.charAt(0).toUpperCase() + meal.slice(1);
                       const isLogged = !!weekLogs[todayLocalStr()]?.[meal];
                       return (
                         <div key={meal} style={{
@@ -294,8 +310,10 @@ export default function MealPlanner() {
                         }}>
                           <div>
                             <span style={{ fontSize:28 }}>{emoji}</span>
-                            <div style={{ fontSize:9, letterSpacing:"1.5px", textTransform:"uppercase", color:"#8a7a5a", margin:"8px 0 4px" }}>{meal}</div>
-                            <div style={{ fontSize:13, fontWeight:600, color: S.brownDark, lineHeight:1.4 }}>{label}</div>
+                            <div style={{ fontSize:13, fontWeight:700, color: S.brownDark, margin:"8px 0 2px" }}>{label}</div>
+                            {r && (
+                              <div style={{ fontSize:10, color:"#8a7a5a", lineHeight:1.3 }}>{r.name}</div>
+                            )}
                           </div>
                           <button
                             onClick={() => { setHomeAltForm({ recipeName:"", ingredients:"", notes:"" }); setHomeCheckin({ meal, recipe: r }); }}
