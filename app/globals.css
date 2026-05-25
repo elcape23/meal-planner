@@ -6,10 +6,54 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+:root {
+  /* ── Design system tokens (Meal Planner) ───────────────────── */
+  /* Color · background */
+  --color-bg-default:           #f7f7f3;
+  --color-bg-surface-neutral:   #f1f2ec;
+  --color-bg-fill-neutral:      #e4e6de;
+
+  /* Color · text */
+  --color-text-default:         #1c1f1b;
+  --color-text-secondary:       #6e736a;
+  --color-text-primary:         #153014;
+
+  /* Color · icon */
+  --color-icon-default:         #1c1f1b;
+  --color-icon-secondary:       #6e736a;
+  --color-icon-primary:         #153014;
+
+  /* Color · border */
+  --color-border-disabled:      #e4e6de;
+
+  /* Spacing scale */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-10: 40px;
+  --space-24: 96px;
+
+  /* Radius */
+  --radius-md:  12px;
+  --radius-max: 9999px;
+
+  /* Typography sizes */
+  --type-heading-04-size: 28px;
+  --type-heading-04-lh:   32px;
+  --type-heading-06-size: 19px;
+  --type-heading-06-lh:   24px;
+  --type-body-01-size:    16px;
+  --type-body-01-lh:      24px;
+  --type-body-02-size:    13px;
+  --type-body-02-lh:      16px;
+}
+
 body {
   font-family: 'Inter', sans-serif;
-  background: #faf7f2;
-  color: #2c2416;
+  background: var(--color-bg-default);
+  color: var(--color-text-default);
 }
 
 @keyframes fadeIn {
@@ -17,6 +61,10 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 .fade-in { animation: fadeIn 0.25s ease forwards; }
+
+/* Hide horizontal scrollbar on carousel */
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
 
 /* Sheet — backdrop */
 @keyframes sheet-backdrop-in {
