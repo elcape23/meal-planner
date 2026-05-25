@@ -4,17 +4,16 @@ import { useState, useMemo, useEffect } from "react";
 import { RECIPES, DAYS, CATEGORIES, fmt, getCat } from "@/lib/data";
 import Seguimiento from "@/components/Seguimiento";
 import { supabase } from "@/lib/supabase";
-import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  Home01Icon, BookOpen01Icon, ShoppingCart01Icon,
-  Task01Icon, UserIcon,
-  Coffee04Icon, Dish02Icon,
-  Search01Icon, Cancel01Icon,
-  Leaf01Icon, MilkCartonIcon, ForkIcon, WheatIcon, NutIcon, OilBarrelIcon,
-  FileDownloadIcon, Download01Icon,
-  CheckmarkCircle01Icon,
-  Notification01Icon,
-} from "@hugeicons/core-free-icons";
+  Home, BookOpen, ShoppingCart,
+  ClipboardList, User,
+  Coffee, UtensilsCrossed,
+  Search, X,
+  Leaf, Milk, Utensils, Wheat, Nut, Droplets,
+  FileDown, Download,
+  CheckCircle2,
+  Bell,
+} from "lucide-react";
 
 /* ───────────────────────── Design tokens ─────────────────────────
    Mirrors Figma design system variables exposed via CSS custom
@@ -106,10 +105,10 @@ const MEAL_CATEGORY = {
 };
 
 const MEAL_ICON = {
-  desayuno: Coffee04Icon,
-  almuerzo: Dish02Icon,
-  merienda: Coffee04Icon,
-  cena:     Dish02Icon,
+  desayuno: Coffee,
+  almuerzo: UtensilsCrossed,
+  merienda: Coffee,
+  cena:     UtensilsCrossed,
 };
 
 const MEAL_LABEL = {
@@ -120,12 +119,12 @@ const MEAL_LABEL = {
 };
 
 const CAT_ICON_COMP = {
-  "Proteínas":             ForkIcon,
-  "Lácteos y quesos":      MilkCartonIcon,
-  "Verduras y hojas":      Leaf01Icon,
-  "Cereales":              WheatIcon,
-  "Aceites y condimentos": OilBarrelIcon,
-  "Frutos secos":          NutIcon,
+  "Proteínas":             Utensils,
+  "Lácteos y quesos":      Milk,
+  "Verduras y hojas":      Leaf,
+  "Cereales":              Wheat,
+  "Aceites y condimentos": Droplets,
+  "Frutos secos":          Nut,
 };
 
 const CHECKIN_STATUS = {
@@ -389,7 +388,7 @@ export default function MealPlanner() {
                   flexShrink: 0,
                 }}
               >
-                <HugeiconsIcon icon={Notification01Icon} size={20} color={HEX.textDefault} strokeWidth={1.75} />
+                <Bell size={20} color={HEX.textDefault} strokeWidth={1.75} />
               </button>
             </header>
 
@@ -467,7 +466,7 @@ export default function MealPlanner() {
           <div className="fade-in">
             {shoppingList.length === 0 ? (
               <div style={{ textAlign:"center", padding:"50px 0", color:"#8a7a5a" }}>
-                <HugeiconsIcon icon={Leaf01Icon} size={40} color="#a09080" style={{ margin:"0 auto 12px", display:"block" }} />
+                <Leaf size={40} color="#a09080" style={{ margin:"0 auto 12px", display:"block" }} />
                 <p style={{ fontStyle:"italic" }}>Seleccioná días en la pestaña Semana.</p>
               </div>
             ) : (
@@ -514,7 +513,7 @@ export default function MealPlanner() {
                   return (
                     <div key={cat} style={{ marginBottom:12, background:"#fff", border:`1.5px solid #e8e2d8`, borderRadius:12, overflow:"hidden" }}>
                       <div onClick={toggleCat} style={{ display:"flex", alignItems:"center", gap:7, padding:"12px 14px", cursor:"pointer" }}>
-                        {(() => { const catIc = CAT_ICON_COMP[cat]; return catIc ? <HugeiconsIcon icon={catIc} size={16} color={S.brownMid} /> : null; })()}
+                        {(() => { const CatIc = CAT_ICON_COMP[cat]; return CatIc ? <CatIc size={16} color={S.brownMid} /> : null; })()}
                         <span style={{ fontSize:10, letterSpacing:"2px", textTransform:"uppercase", color: S.brownMid, fontWeight:600 }}>{cat}</span>
                         <span style={{ marginLeft:"auto", fontSize:10, color:"#a09080", marginRight:6 }}>{catChecked > 0 ? `${catChecked}/${items.length}` : items.length}</span>
                         <span style={{ fontSize:12, color:"#a09080", transform: collapsed ? "none" : "rotate(180deg)", transition:"transform 0.2s" }}>▾</span>
@@ -563,7 +562,7 @@ export default function MealPlanner() {
                 fontSize:15, fontFamily:"'Inter',sans-serif", fontWeight:700, cursor:"pointer",
                 display:"flex", alignItems:"center", justifyContent:"center", gap:8,
               }}>
-                <HugeiconsIcon icon={FileDownloadIcon} size={18} color="#fff" />
+                <FileDown size={18} color="#fff" />
                 Exportar recetas (semana completa)
               </button>
             </div>
@@ -590,7 +589,7 @@ export default function MealPlanner() {
             </div>
 
             <div style={{ position:"relative", marginBottom:16 }}>
-              <HugeiconsIcon icon={Search01Icon} size={16} color="#a09080" style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }} />
+              <Search size={16} color="#a09080" style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }} />
               <input
                 value={recipeSearch}
                 onChange={e => setRecipeSearch(e.target.value)}
@@ -610,12 +609,12 @@ export default function MealPlanner() {
                 .filter(([, r]) => !recipeSearch || r.name.toLowerCase().includes(recipeSearch.toLowerCase()))
                 .map(([key, recipe]) => {
                 const open = expandedRecipe === key;
-                const recIc = recipe.category === "almuerzo_cena" ? Dish02Icon : Coffee04Icon;
+                const RecIc = recipe.category === "almuerzo_cena" ? UtensilsCrossed : Coffee;
                 return (
                   <div key={key} style={{ background:"#fff", border:`1.5px solid #e8e2d8`, borderRadius:12, overflow:"hidden" }}>
                     <div onClick={() => setExpandedRecipe(open ? null : key)}
                       style={{ padding:"13px 15px", display:"flex", alignItems:"center", gap:11, cursor:"pointer" }}>
-                      <HugeiconsIcon icon={recIc} size={22} color={S.greenMid} />
+                      <RecIc size={22} color={S.greenMid} />
                       <div style={{ flex:1 }}>
                         <div style={{ fontSize:13, fontWeight:600, color: S.brownDark, lineHeight:1.3 }}>{recipe.name}</div>
                       </div>
@@ -649,7 +648,7 @@ export default function MealPlanner() {
         {/* ────────────────────── CUENTA ────────────────────── */}
         {tab === "cuenta" && (
           <div className="fade-in" style={{ textAlign:"center", padding:"60px 0", color: T.textSecondary }}>
-            <HugeiconsIcon icon={UserIcon} size={48} color={HEX.textSecondary} style={{ margin:"0 auto 16px", display:"block" }} strokeWidth={1.5} />
+            <User size={48} color={HEX.textSecondary} style={{ margin:"0 auto 16px", display:"block" }} strokeWidth={1.5} />
             <div style={{ fontSize:19, fontWeight:500, color: T.textDefault, lineHeight: "24px" }}>Próximamente</div>
             <div style={{ fontSize:13, marginTop:6, lineHeight: "16px" }}>La sección de cuenta estará disponible pronto.</div>
           </div>
@@ -689,7 +688,7 @@ export default function MealPlanner() {
               </div>
             </div>
             <button onClick={() => setPrintModal(false)} style={{ background:"rgba(255,255,255,0.15)", border:"none", width:34, height:34, borderRadius:"50%", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
-              <HugeiconsIcon icon={Cancel01Icon} size={18} color="#fff" />
+              <X size={18} color="#fff" />
             </button>
           </div>
 
@@ -729,7 +728,7 @@ export default function MealPlanner() {
               fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:700, cursor: exporting ? "not-allowed" : "pointer",
             }}>
               {exporting ? "Generando PDF..." : (
-              <><HugeiconsIcon icon={Download01Icon} size={16} color="#fff" style={{ display:"inline", verticalAlign:"middle", marginRight:6 }} />Descargar PDF</>
+              <><Download size={16} color="#fff" style={{ display:"inline", verticalAlign:"middle", marginRight:6 }} />Descargar PDF</>
             )}
             </button>
           </div>
@@ -772,7 +771,7 @@ function TodayCard({ meal, recipe, onOpen }) {
         background: T.bgFill,
         display: "flex", alignItems: "center", justifyContent: "center",
       }}>
-        <HugeiconsIcon icon={Icon} size={24} color={HEX.textPrimary} strokeWidth={1.75} />
+        <Icon size={24} color={HEX.textPrimary} strokeWidth={1.75} />
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -812,7 +811,7 @@ function EmptyDayCard() {
       alignItems: "center", justifyContent: "center", gap: 8,
       padding: 20,
     }}>
-      <HugeiconsIcon icon={Coffee04Icon} size={28} color={HEX.textSecondary} strokeWidth={1.75} />
+      <Coffee size={28} color={HEX.textSecondary} strokeWidth={1.75} />
       <span style={{ fontSize: 16, fontWeight: 500, lineHeight: "24px", color: T.textDefault }}>
         Día libre
       </span>
@@ -839,7 +838,7 @@ function RegistroListItem({ meal, log, onRegister }) {
         width: 24, height: 24, flexShrink: 0,
         display: "flex", alignItems: "center", justifyContent: "center",
       }}>
-        <HugeiconsIcon icon={Icon} size={20} color={HEX.textDefault} strokeWidth={1.75} />
+        <Icon size={20} color={HEX.textDefault} strokeWidth={1.75} />
       </div>
 
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
@@ -863,7 +862,7 @@ function RegistroListItem({ meal, log, onRegister }) {
       <PillButton onClick={onRegister}>
         {isLogged ? (
           <>
-            <HugeiconsIcon icon={CheckmarkCircle01Icon} size={14} color={HEX.textDefault} strokeWidth={1.75} />
+            <CheckCircle2 size={14} color={HEX.textDefault} strokeWidth={1.75} />
             Registrado
           </>
         ) : "Registrar"}
@@ -875,11 +874,11 @@ function RegistroListItem({ meal, log, onRegister }) {
 /** Bottom navigation matching the Figma design. */
 function BottomNav({ tab, setTab }) {
   const items = [
-    { id: "recetas",     label: "Recetas",  icon: BookOpen01Icon     },
-    { id: "lista",       label: "Lista",    icon: ShoppingCart01Icon },
-    { id: "planner",     label: "Home",     icon: Home01Icon         },
-    { id: "seguimiento", label: "Registro", icon: Task01Icon         },
-    { id: "cuenta",      label: "Cuenta",   icon: UserIcon           },
+    { id: "recetas",     label: "Recetas",  icon: BookOpen       },
+    { id: "lista",       label: "Lista",    icon: ShoppingCart   },
+    { id: "planner",     label: "Home",     icon: Home           },
+    { id: "seguimiento", label: "Registro", icon: ClipboardList  },
+    { id: "cuenta",      label: "Cuenta",   icon: User           },
   ];
 
   return (
@@ -908,12 +907,7 @@ function BottomNav({ tab, setTab }) {
                 padding: 0,
               }}
             >
-              <HugeiconsIcon
-                icon={icon}
-                size={20}
-                color={active ? HEX.textPrimary : HEX.textSecondary}
-                strokeWidth={active ? 2 : 1.75}
-              />
+              {(() => { const NavIcon = icon; return <NavIcon size={20} color={active ? HEX.textPrimary : HEX.textSecondary} strokeWidth={active ? 2 : 1.75} />; })()}
               <span style={{
                 fontSize: 13,
                 fontWeight: active ? 500 : 400,
@@ -969,7 +963,7 @@ function SheetShell({ onClose, children }) {
 }
 
 function RecipeSheet({ meal, recipe, onClose }) {
-  const Icon = MEAL_ICON[meal] ?? Dish02Icon;
+  const Icon = MEAL_ICON[meal] ?? UtensilsCrossed;
   return (
     <SheetShell onClose={onClose}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
@@ -979,7 +973,7 @@ function RecipeSheet({ meal, recipe, onClose }) {
           display: "flex", alignItems: "center", justifyContent: "center",
           flexShrink: 0,
         }}>
-          <HugeiconsIcon icon={Icon} size={24} color={HEX.textPrimary} strokeWidth={1.75} />
+          <Icon size={24} color={HEX.textPrimary} strokeWidth={1.75} />
         </div>
         <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
           <span style={{ fontSize: 13, fontWeight: 400, lineHeight: "16px", color: T.textSecondary }}>
@@ -999,7 +993,7 @@ function RecipeSheet({ meal, recipe, onClose }) {
             flexShrink: 0,
           }}
         >
-          <HugeiconsIcon icon={Cancel01Icon} size={16} color={HEX.textDefault} strokeWidth={1.75} />
+          <X size={16} color={HEX.textDefault} strokeWidth={1.75} />
         </button>
       </div>
 
@@ -1046,7 +1040,7 @@ function CheckinSheet({ checkin, altForm, setAltForm, onClose, onSave, saving })
           display: "flex", alignItems: "center", justifyContent: "center",
           flexShrink: 0,
         }}>
-          <HugeiconsIcon icon={Icon} size={24} color={HEX.textPrimary} strokeWidth={1.75} />
+          <Icon size={24} color={HEX.textPrimary} strokeWidth={1.75} />
         </div>
         <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
           <span style={{ fontSize: 13, fontWeight: 400, lineHeight: "16px", color: T.textSecondary }}>
@@ -1066,7 +1060,7 @@ function CheckinSheet({ checkin, altForm, setAltForm, onClose, onSave, saving })
             flexShrink: 0,
           }}
         >
-          <HugeiconsIcon icon={Cancel01Icon} size={16} color={HEX.textDefault} strokeWidth={1.75} />
+          <X size={16} color={HEX.textDefault} strokeWidth={1.75} />
         </button>
       </div>
 
@@ -1118,7 +1112,7 @@ function CheckinSheet({ checkin, altForm, setAltForm, onClose, onSave, saving })
                     textAlign: "left",
                   }}
                 >
-                  <HugeiconsIcon icon={MEAL_ICON[meal]} size={20} color={HEX.textDefault} strokeWidth={1.75} />
+                  {(() => { const MealIc = MEAL_ICON[meal]; return <MealIc size={20} color={HEX.textDefault} strokeWidth={1.75} />; })()}
                   <span style={{ fontSize: 16, fontWeight: 500, lineHeight: "24px", color: T.textDefault }}>{rec.name}</span>
                 </button>
               ))}
