@@ -420,7 +420,7 @@ export default function MealPlanner() {
                   style={{
                     display: "flex", gap: 12,
                     overflowX: "auto", scrollSnapType: "x mandatory",
-                    margin: "0 -20px", padding: "0 20px",
+                    marginRight: "-20px",
                   }}
                 >
                   {todayPlannedMeals.map(({ key, recipe }) => (
@@ -431,6 +431,8 @@ export default function MealPlanner() {
                       onOpen={() => setRecipeModal({ meal: key, recipe })}
                     />
                   ))}
+                  {/* right-edge spacer — padding-right is ignored on overflow:auto flex containers */}
+                  <div style={{ flexShrink: 0, width: 20 }} />
                 </div>
               )}
             </section>
