@@ -892,7 +892,7 @@ function BottomNav({ tab, setTab }) {
       <div style={{
         width: "100%", maxWidth: 480,
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "8px 16px 20px",
+        padding: "8px 16px 32px",
       }}>
         {items.map(({ id, label, icon }) => {
           const active = tab === id;
