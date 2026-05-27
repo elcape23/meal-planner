@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { RECIPES, DAYS, CATEGORIES, fmt, getCat } from "@/lib/data";
 import Seguimiento from "@/components/Seguimiento";
 import { supabase } from "@/lib/supabase";
@@ -13,6 +13,7 @@ import {
   FileDown, Download,
   CheckCircle2,
   Bell,
+  ChevronDown, ChevronUp, Plus,
 } from "lucide-react";
 
 /* ───────────────────────── Design tokens ─────────────────────────
@@ -127,12 +128,6 @@ const CAT_ICON_COMP = {
   "Frutos secos":          Nut,
 };
 
-const CHECKIN_STATUS = {
-  plan:        { label: "Seguí el plan",  color: HEX.textPrimary },
-  alternative: { label: "Comí otra cosa", color: "#a37200" },
-  skipped:     { label: "No comí",        color: HEX.textSecondary },
-};
-
 
 /* ───────────────────────── Reusable primitives ───────────────────────── */
 
@@ -234,6 +229,25 @@ export default function MealPlanner() {
   const [recipeSearch,   setRecipeSearch]   = useState("");
   const [printModal,     setPrintModal]     = useState(false);
   const [exporting,      setExporting]      = useState(false);
+  const [navVisible,     setNavVisible]     = useState(true);
+  const lastScrollY = useRef(0);
+
+  /* Hide navbar on scroll-down, reveal on scroll-up */
+  useEffect(() => {
+    const onScroll = () => {
+      const current = window.scrollY;
+      setNavVisible(current <= 10 || current < lastScrollY.current);
+      lastScrollY.current = current;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  /* Lock body scroll while any sheet is open */
+  useEffect(() => {
+    document.body.style.overflow = (homeCheckin || recipeModal) ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [homeCheckin, recipeModal]);
 
   useEffect(() => {
     const dates = currentWeekDates();
@@ -276,6 +290,28 @@ export default function MealPlanner() {
     setHomeSaving(false);
     setHomeCheckin(null);
     setHomeAltForm({ recipeName: "", ingredients: "", notes: "" });
+  };
+
+  const autoRegisterMeal = async (meal, recipe) => {
+    setHomeSaving(true);
+    const payload = {
+      date: todayDateStr, meal, status: "plan",
+      recipe_name: recipe?.name ?? null,
+      ingredients: null, notes: null,
+    };
+    const { data: existing } = await supabase
+      .from("meal_logs").select("id").eq("date", todayDateStr).eq("meal", meal).maybeSingle();
+    if (existing?.id) {
+      await supabase.from("meal_logs").update(payload).eq("id", existing.id);
+    } else {
+      await supabase.from("meal_logs").insert(payload);
+    }
+    setWeekLogs(prev => ({
+      ...prev,
+      [todayDateStr]: { ...(prev[todayDateStr] || {}), [meal]: { ...payload, id: existing?.id ?? Date.now() } },
+    }));
+    setHomeSaving(false);
+    setRecipeModal(null);
   };
 
   const shoppingList = useMemo(() => {
@@ -674,6 +710,8 @@ export default function MealPlanner() {
           meal={recipeModal.meal}
           recipe={recipeModal.recipe}
           onClose={() => setRecipeModal(null)}
+          onRegister={() => autoRegisterMeal(recipeModal.meal, recipeModal.recipe)}
+          saving={homeSaving}
         />
       )}
 
@@ -736,7 +774,7 @@ export default function MealPlanner() {
       )}
 
       {/* ────────────────────── BOTTOM NAVBAR (Figma) ────────────────────── */}
-      <BottomNav tab={tab} setTab={setTab} />
+      <BottomNav tab={tab} setTab={setTab} visible={navVisible} />
 
     </div>
   );
@@ -854,15 +892,18 @@ function RegistroListItem({ meal, log, onRegister }) {
             color: T.textSecondary,
             whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
           }}>
-            {log.status === "alternative" ? (log.recipe_name || "Otra comida") : CHECKIN_STATUS[log.status]?.label}
+            {log.status === "skipped" ? "No comí" : (log.recipe_name || "Registrado")}
           </span>
         )}
       </div>
 
-      <PillButton onClick={onRegister}>
+      <PillButton
+        onClick={onRegister}
+        style={isLogged ? { background: HEX.textPrimary, color: "#fff" } : {}}
+      >
         {isLogged ? (
           <>
-            <CheckCircle2 size={14} color={HEX.textDefault} strokeWidth={1.75} />
+            <CheckCircle2 size={14} color="#fff" strokeWidth={1.75} />
             Registrado
           </>
         ) : "Registrar"}
@@ -872,7 +913,7 @@ function RegistroListItem({ meal, log, onRegister }) {
 }
 
 /** Bottom navigation matching the Figma design. */
-function BottomNav({ tab, setTab }) {
+function BottomNav({ tab, setTab, visible }) {
   const items = [
     { id: "recetas",     label: "Recetas",  icon: BookOpen       },
     { id: "lista",       label: "Lista",    icon: ShoppingCart   },
@@ -887,6 +928,8 @@ function BottomNav({ tab, setTab }) {
       background: T.bgDefault,
       borderTop: `1px solid ${T.borderDisabled}`,
       display: "flex", justifyContent: "center",
+      transform: visible ? "translateY(0)" : "translateY(100%)",
+      transition: "transform 0.3s ease",
     }}>
       <div style={{
         width: "100%", maxWidth: 480,
@@ -930,7 +973,7 @@ function BottomNav({ tab, setTab }) {
 
 /* ───────────────────────── Bottom-sheet modals ───────────────────────── */
 
-function SheetShell({ onClose, children }) {
+function SheetShell({ onClose, header, children }) {
   return (
     <div
       onClick={onClose}
@@ -946,244 +989,333 @@ function SheetShell({ onClose, children }) {
           width: "100%", maxWidth: 480,
           background: T.bgDefault,
           borderRadius: "16px 16px 0 0",
-          padding: "24px 20px 40px",
-          maxHeight: "85vh", overflowY: "auto",
+          maxHeight: "85vh",
+          display: "flex", flexDirection: "column",
           fontFamily: "'Inter', sans-serif",
+          overflow: "hidden",
         }}
       >
-        <div style={{
-          width: 36, height: 4, borderRadius: 2,
-          background: T.bgFill,
-          margin: "0 auto 20px",
-        }} />
-        {children}
+        {/* Fixed header */}
+        <div style={{ flexShrink: 0, padding: "24px 20px 0" }}>
+          <div style={{
+            width: 36, height: 4, borderRadius: 2,
+            background: T.bgFill, margin: "0 auto 20px",
+          }} />
+          {header}
+        </div>
+        {/* Scrollable content */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px 40px" }}>
+          {children}
+        </div>
       </div>
     </div>
   );
 }
 
-function RecipeSheet({ meal, recipe, onClose }) {
+function RecipeSheet({ meal, recipe, onClose, onRegister, saving }) {
+  const [ingredientsOpen, setIngredientsOpen] = useState(true);
+  const [procedureOpen,   setProcedureOpen]   = useState(false);
   const Icon = MEAL_ICON[meal] ?? UtensilsCrossed;
-  return (
-    <SheetShell onClose={onClose}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-        <div style={{
-          width: 48, height: 48, borderRadius: T.radiusMd,
-          background: T.bgFill,
+
+  const header = (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
+      <div style={{
+        width: 48, height: 48, borderRadius: T.radiusMd,
+        background: T.bgFill,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        flexShrink: 0,
+      }}>
+        <Icon size={24} color={HEX.textPrimary} strokeWidth={1.75} />
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
+        <span style={{ fontSize: 13, fontWeight: 400, lineHeight: "16px", color: T.textSecondary }}>
+          {MEAL_LABEL[meal]}
+        </span>
+        <span style={{ fontSize: 19, fontWeight: 500, lineHeight: "24px", color: T.textDefault }}>
+          {recipe.name}
+        </span>
+      </div>
+      <button
+        onClick={onClose}
+        aria-label="Cerrar"
+        style={{
+          width: 36, height: 36, borderRadius: T.radiusMax,
+          background: T.bgFill, border: "none", cursor: "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
           flexShrink: 0,
-        }}>
-          <Icon size={24} color={HEX.textPrimary} strokeWidth={1.75} />
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
-          <span style={{ fontSize: 13, fontWeight: 400, lineHeight: "16px", color: T.textSecondary }}>
-            {MEAL_LABEL[meal]}
-          </span>
-          <span style={{ fontSize: 19, fontWeight: 500, lineHeight: "24px", color: T.textDefault }}>
-            {recipe.name}
-          </span>
-        </div>
+        }}
+      >
+        <X size={16} color={HEX.textDefault} strokeWidth={1.75} />
+      </button>
+    </div>
+  );
+
+  return (
+    <SheetShell onClose={onClose} header={header}>
+      {/* Ingredients accordion — open by default */}
+      <div style={{ marginBottom: 12 }}>
         <button
-          onClick={onClose}
-          aria-label="Cerrar"
+          onClick={() => setIngredientsOpen(o => !o)}
           style={{
-            width: 36, height: 36, borderRadius: T.radiusMax,
-            background: T.bgFill, border: "none", cursor: "pointer",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0,
+            width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+            background: "none", border: "none", cursor: "pointer",
+            padding: "8px 0", marginBottom: 8,
+            fontFamily: "'Inter', sans-serif",
           }}
         >
-          <X size={16} color={HEX.textDefault} strokeWidth={1.75} />
+          <span style={{ fontSize: 13, fontWeight: 500, lineHeight: "16px", color: T.textSecondary }}>
+            Ingredientes
+          </span>
+          {ingredientsOpen
+            ? <ChevronUp size={16} color={HEX.textSecondary} strokeWidth={1.75} />
+            : <ChevronDown size={16} color={HEX.textSecondary} strokeWidth={1.75} />}
         </button>
-      </div>
-
-      {recipe.note && (
-        <p style={{ fontSize: 13, fontWeight: 400, lineHeight: "16px", color: T.textSecondary, marginBottom: 16, fontStyle: "italic" }}>
-          {recipe.note}
-        </p>
-      )}
-
-      <span style={{ fontSize: 13, fontWeight: 500, lineHeight: "16px", color: T.textSecondary, display: "block", marginBottom: 12 }}>
-        Ingredientes
-      </span>
-      <div style={{ display: "flex", flexDirection: "column", borderRadius: T.radiusMd, overflow: "hidden", background: T.bgSurface }}>
-        {recipe.ingredients.map((ing, i) => (
-          <div
-            key={ing.name}
-            style={{
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-              padding: "14px 16px",
-              borderTop: i === 0 ? "none" : `1px solid ${T.bgFill}`,
-            }}
-          >
-            <span style={{ fontSize: 16, fontWeight: 400, lineHeight: "24px", color: T.textDefault }}>{ing.name}</span>
-            <span style={{ fontSize: 13, fontWeight: 500, lineHeight: "16px", color: T.textPrimary }}>{fmt(ing.amount, ing.unit)}</span>
+        {ingredientsOpen && (
+          <div style={{ display: "flex", flexDirection: "column", borderRadius: T.radiusMd, overflow: "hidden", background: T.bgSurface }}>
+            {recipe.ingredients.map((ing, i) => (
+              <div
+                key={ing.name}
+                style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  padding: "14px 16px",
+                  borderTop: i === 0 ? "none" : `1px solid ${T.bgFill}`,
+                }}
+              >
+                <span style={{ fontSize: 16, fontWeight: 400, lineHeight: "24px", color: T.textDefault }}>{ing.name}</span>
+                <span style={{ fontSize: 13, fontWeight: 500, lineHeight: "16px", color: T.textPrimary }}>{fmt(ing.amount, ing.unit)}</span>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
+
+      {/* Procedure accordion — closed by default */}
+      <div style={{ marginBottom: 20 }}>
+        <button
+          onClick={() => setProcedureOpen(o => !o)}
+          style={{
+            width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+            background: "none", border: "none", cursor: "pointer",
+            padding: "8px 0", marginBottom: procedureOpen ? 8 : 0,
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
+          <span style={{ fontSize: 13, fontWeight: 500, lineHeight: "16px", color: T.textSecondary }}>
+            Procedimiento
+          </span>
+          {procedureOpen
+            ? <ChevronUp size={16} color={HEX.textSecondary} strokeWidth={1.75} />
+            : <ChevronDown size={16} color={HEX.textSecondary} strokeWidth={1.75} />}
+        </button>
+        {procedureOpen && (
+          <div style={{ background: T.bgSurface, borderRadius: T.radiusMd, padding: "14px 16px" }}>
+            <p style={{ fontSize: 14, fontWeight: 400, lineHeight: "20px", color: T.textDefault, margin: 0, fontStyle: recipe.note ? "normal" : "italic" }}>
+              {recipe.note || "No hay procedimiento disponible para esta receta."}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Auto-register button */}
+      {onRegister && (
+        <button
+          onClick={onRegister}
+          disabled={saving}
+          style={{
+            width: "100%", height: 48,
+            borderRadius: T.radiusMax, border: "none",
+            background: HEX.textPrimary,
+            color: "#fff",
+            fontSize: 16, fontWeight: 500, lineHeight: "24px",
+            fontFamily: "'Inter', sans-serif",
+            cursor: saving ? "not-allowed" : "pointer",
+            opacity: saving ? 0.6 : 1,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          }}
+        >
+          <CheckCircle2 size={18} color="#fff" strokeWidth={1.75} />
+          {saving ? "Registrando..." : "Registrar esta comida"}
+        </button>
+      )}
     </SheetShell>
   );
 }
 
 function CheckinSheet({ checkin, altForm, setAltForm, onClose, onSave, saving }) {
-  const { meal, recipe } = checkin;
+  const { meal, recipe: plannedRecipe } = checkin;
   const Icon = MEAL_ICON[meal];
-  const hasPlan = !!recipe;
+  const [search,      setSearch]      = useState("");
+  const [showAltForm, setShowAltForm] = useState(false);
 
-  return (
-    <SheetShell onClose={onClose}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-        <div style={{
-          width: 48, height: 48, borderRadius: T.radiusMd,
-          background: T.bgFill,
+  const filteredRecipes = Object.entries(RECIPES)
+    .filter(([, r]) => r.category === MEAL_CATEGORY[meal])
+    .filter(([, r]) => !search || r.name.toLowerCase().includes(search.toLowerCase()));
+
+  const header = (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
+      <div style={{
+        width: 48, height: 48, borderRadius: T.radiusMd,
+        background: T.bgFill,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        flexShrink: 0,
+      }}>
+        <Icon size={24} color={HEX.textPrimary} strokeWidth={1.75} />
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
+        <span style={{ fontSize: 13, fontWeight: 400, lineHeight: "16px", color: T.textSecondary }}>
+          {MEAL_LABEL[meal]}
+        </span>
+        <span style={{ fontSize: 19, fontWeight: 500, lineHeight: "24px", color: T.textDefault }}>
+          Registrar comida
+        </span>
+      </div>
+      <button
+        onClick={onClose}
+        aria-label="Cerrar"
+        style={{
+          width: 36, height: 36, borderRadius: T.radiusMax,
+          background: T.bgFill, border: "none", cursor: "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
           flexShrink: 0,
-        }}>
-          <Icon size={24} color={HEX.textPrimary} strokeWidth={1.75} />
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
-          <span style={{ fontSize: 13, fontWeight: 400, lineHeight: "16px", color: T.textSecondary }}>
-            {MEAL_LABEL[meal]}
-          </span>
-          <span style={{ fontSize: 19, fontWeight: 500, lineHeight: "24px", color: T.textDefault }}>
-            {hasPlan ? recipe.name : "Registrar comida"}
-          </span>
-        </div>
-        <button
-          onClick={onClose}
-          aria-label="Cerrar"
+        }}
+      >
+        <X size={16} color={HEX.textDefault} strokeWidth={1.75} />
+      </button>
+    </div>
+  );
+
+  return (
+    <SheetShell onClose={onClose} header={header}>
+      {/* Search bar */}
+      <div style={{ position: "relative", marginBottom: 16 }}>
+        <Search size={16} color={HEX.textSecondary} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar receta..."
           style={{
-            width: 36, height: 36, borderRadius: T.radiusMax,
-            background: T.bgFill, border: "none", cursor: "pointer",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0,
+            width: "100%", padding: "10px 12px 10px 36px",
+            borderRadius: T.radiusMd,
+            border: `1px solid ${HEX.borderDisabled}`,
+            fontSize: 16, lineHeight: "24px",
+            fontFamily: "'Inter', sans-serif",
+            color: HEX.textDefault, background: HEX.bgDefault,
+            outline: "none", boxSizing: "border-box",
           }}
-        >
-          <X size={16} color={HEX.textDefault} strokeWidth={1.75} />
-        </button>
+        />
       </div>
 
-      {hasPlan ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
-          {Object.entries(CHECKIN_STATUS).map(([key, { label, color }]) => (
+      {/* Recipe list */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+        {filteredRecipes.map(([key, rec]) => {
+          const isPlanned = plannedRecipe && rec.name === plannedRecipe.name;
+          return (
             <button
               key={key}
-              onClick={() => key !== "alternative" && onSave(key)}
+              onClick={() => onSave(isPlanned ? "plan" : "alternative", rec.name)}
               disabled={saving}
               style={{
                 width: "100%", padding: "14px 16px",
-                background: T.bgSurface,
-                border: "none",
-                borderRadius: T.radiusMd,
-                display: "flex", alignItems: "center", gap: 12,
-                cursor: key === "alternative" ? "default" : "pointer",
-                opacity: saving ? 0.6 : 1,
-                fontFamily: "'Inter', sans-serif",
-                textAlign: "left",
-              }}
-            >
-              <div style={{ width: 10, height: 10, borderRadius: "50%", background: color, flexShrink: 0 }} />
-              <span style={{ fontSize: 16, fontWeight: 500, lineHeight: "24px", color: T.textDefault }}>{label}</span>
-            </button>
-          ))}
-        </div>
-      ) : (
-        <>
-          <span style={{ fontSize: 13, fontWeight: 500, lineHeight: "16px", color: T.textSecondary, display: "block", marginBottom: 12 }}>
-            Opciones
-          </span>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
-            {Object.entries(RECIPES)
-              .filter(([, rec]) => rec.category === MEAL_CATEGORY[meal])
-              .map(([key, rec]) => (
-                <button
-                  key={key}
-                  onClick={() => onSave("plan", rec.name)}
-                  disabled={saving}
-                  style={{
-                    width: "100%", padding: "14px 16px",
-                    background: T.bgSurface,
-                    border: "none",
-                    borderRadius: T.radiusMd,
-                    display: "flex", alignItems: "center", gap: 12,
-                    cursor: "pointer", opacity: saving ? 0.6 : 1,
-                    fontFamily: "'Inter', sans-serif",
-                    textAlign: "left",
-                  }}
-                >
-                  {(() => { const MealIc = MEAL_ICON[meal]; return <MealIc size={20} color={HEX.textDefault} strokeWidth={1.75} />; })()}
-                  <span style={{ fontSize: 16, fontWeight: 500, lineHeight: "24px", color: T.textDefault }}>{rec.name}</span>
-                </button>
-              ))}
-            <button
-              onClick={() => onSave("skipped")}
-              disabled={saving}
-              style={{
-                width: "100%", padding: "14px 16px",
-                background: T.bgSurface, border: "none",
+                background: isPlanned ? HEX.bgFill : T.bgSurface,
+                border: isPlanned ? `1.5px solid ${HEX.textPrimary}` : "1.5px solid transparent",
                 borderRadius: T.radiusMd,
                 display: "flex", alignItems: "center", gap: 12,
                 cursor: "pointer", opacity: saving ? 0.6 : 1,
                 fontFamily: "'Inter', sans-serif",
+                textAlign: "left",
               }}
             >
-              <div style={{ width: 10, height: 10, borderRadius: "50%", background: HEX.textSecondary, flexShrink: 0 }} />
-              <span style={{ fontSize: 16, fontWeight: 500, lineHeight: "24px", color: T.textSecondary }}>No comí</span>
+              <Icon size={20} color={isPlanned ? HEX.textPrimary : HEX.textDefault} strokeWidth={1.75} />
+              <span style={{ flex: 1, fontSize: 16, fontWeight: 500, lineHeight: "24px", color: isPlanned ? HEX.textPrimary : T.textDefault }}>
+                {rec.name}
+              </span>
+              {isPlanned && (
+                <span style={{ fontSize: 11, fontWeight: 500, color: HEX.textPrimary, background: "rgba(21,48,20,0.08)", padding: "2px 8px", borderRadius: T.radiusMax }}>
+                  Plan
+                </span>
+              )}
             </button>
-          </div>
-        </>
-      )}
+          );
+        })}
 
-      {/* Alternative form */}
-      <div style={{
-        background: T.bgSurface,
-        borderRadius: T.radiusMd,
-        padding: 16,
-      }}>
-        <span style={{ fontSize: 13, fontWeight: 500, lineHeight: "16px", color: T.textSecondary, display: "block", marginBottom: 12 }}>
-          Comida alternativa
-        </span>
-        {[
-          { key: "recipeName",  label: "Nombre",                 placeholder: "Ej: Milanesa con ensalada" },
-          { key: "ingredients", label: "Ingredientes (opcional)",placeholder: "Ej: Milanesa 200g, lechuga" },
-          { key: "notes",       label: "Notas (opcional)",       placeholder: "Ej: Comí afuera" },
-        ].map(({ key, label, placeholder }) => (
-          <div key={key} style={{ marginBottom: 10 }}>
-            <span style={{ fontSize: 13, fontWeight: 400, lineHeight: "16px", color: T.textSecondary, display: "block", marginBottom: 4 }}>{label}</span>
-            <input
-              value={altForm[key]}
-              onChange={e => setAltForm(p => ({ ...p, [key]: e.target.value }))}
-              placeholder={placeholder}
-              style={{
-                width: "100%", padding: "10px 12px",
-                borderRadius: 8,
-                border: `1px solid ${HEX.borderDisabled}`,
-                fontSize: 16, lineHeight: "24px",
-                fontFamily: "'Inter', sans-serif",
-                color: HEX.textDefault, background: HEX.bgDefault,
-                outline: "none",
-                boxSizing: "border-box",
-              }}
-            />
-          </div>
-        ))}
+        {/* No comí */}
         <button
-          onClick={() => onSave("alternative")}
-          disabled={saving || !altForm.recipeName}
+          onClick={() => onSave("skipped")}
+          disabled={saving}
           style={{
-            width: "100%", marginTop: 6,
-            height: 44, borderRadius: T.radiusMax, border: "none",
-            background: altForm.recipeName ? HEX.textPrimary : HEX.bgFill,
-            color: altForm.recipeName ? "#fff" : HEX.textSecondary,
-            fontSize: 16, fontWeight: 500, lineHeight: "24px",
+            width: "100%", padding: "14px 16px",
+            background: T.bgSurface, border: "1.5px solid transparent",
+            borderRadius: T.radiusMd,
+            display: "flex", alignItems: "center", gap: 12,
+            cursor: "pointer", opacity: saving ? 0.6 : 1,
             fontFamily: "'Inter', sans-serif",
-            cursor: altForm.recipeName ? "pointer" : "not-allowed",
           }}
         >
-          {saving ? "Guardando..." : "Guardar comida alternativa"}
+          <div style={{ width: 10, height: 10, borderRadius: "50%", background: HEX.textSecondary, flexShrink: 0 }} />
+          <span style={{ fontSize: 16, fontWeight: 500, lineHeight: "24px", color: T.textSecondary }}>No comí</span>
+        </button>
+
+        {/* Agregar receta nueva */}
+        <button
+          onClick={() => setShowAltForm(v => !v)}
+          style={{
+            width: "100%", padding: "14px 16px",
+            background: "none", border: `1.5px dashed ${HEX.borderDisabled}`,
+            borderRadius: T.radiusMd,
+            display: "flex", alignItems: "center", gap: 12,
+            cursor: "pointer",
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
+          <Plus size={20} color={HEX.textSecondary} strokeWidth={1.75} />
+          <span style={{ fontSize: 16, fontWeight: 500, lineHeight: "24px", color: T.textSecondary }}>
+            Agregar receta nueva
+          </span>
         </button>
       </div>
+
+      {/* Alt form — shown when toggled */}
+      {showAltForm && (
+        <div style={{ background: T.bgSurface, borderRadius: T.radiusMd, padding: 16, marginTop: 4 }}>
+          {[
+            { key: "recipeName",  label: "Nombre",                  placeholder: "Ej: Milanesa con ensalada" },
+            { key: "ingredients", label: "Ingredientes (opcional)", placeholder: "Ej: Milanesa 200g, lechuga" },
+            { key: "notes",       label: "Notas (opcional)",        placeholder: "Ej: Comí afuera" },
+          ].map(({ key, label, placeholder }) => (
+            <div key={key} style={{ marginBottom: 10 }}>
+              <span style={{ fontSize: 13, fontWeight: 400, lineHeight: "16px", color: T.textSecondary, display: "block", marginBottom: 4 }}>{label}</span>
+              <input
+                value={altForm[key]}
+                onChange={e => setAltForm(p => ({ ...p, [key]: e.target.value }))}
+                placeholder={placeholder}
+                style={{
+                  width: "100%", padding: "10px 12px",
+                  borderRadius: 8, border: `1px solid ${HEX.borderDisabled}`,
+                  fontSize: 16, lineHeight: "24px",
+                  fontFamily: "'Inter', sans-serif",
+                  color: HEX.textDefault, background: HEX.bgDefault,
+                  outline: "none", boxSizing: "border-box",
+                }}
+              />
+            </div>
+          ))}
+          <button
+            onClick={() => onSave("alternative")}
+            disabled={saving || !altForm.recipeName}
+            style={{
+              width: "100%", marginTop: 6,
+              height: 44, borderRadius: T.radiusMax, border: "none",
+              background: altForm.recipeName ? HEX.textPrimary : HEX.bgFill,
+              color: altForm.recipeName ? "#fff" : HEX.textSecondary,
+              fontSize: 16, fontWeight: 500, lineHeight: "24px",
+              fontFamily: "'Inter', sans-serif",
+              cursor: altForm.recipeName ? "pointer" : "not-allowed",
+            }}
+          >
+            {saving ? "Guardando..." : "Guardar receta nueva"}
+          </button>
+        </div>
+      )}
     </SheetShell>
   );
 }
