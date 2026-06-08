@@ -13,7 +13,7 @@ import {
   FileDown, Download,
   CheckCircle2,
   Bell,
-  ChevronDown, ChevronUp, Plus,
+  ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Plus,
 } from "lucide-react";
 
 /* ───────────────────────── Design tokens ─────────────────────────
@@ -215,6 +215,8 @@ export default function MealPlanner() {
   const plannerDay = !isWeekend ? todayDow - 1 : null;
   const todayDateStr = useMemo(() => localDateStr(today), [today]);
 
+  const [carouselDay, setCarouselDay] = useState(plannerDay ?? 0);
+
   const [tab,        setTab]        = useState("planner");
   const [recipeModal,setRecipeModal]= useState(null); // { meal, recipe }
   const [homeCheckin,setHomeCheckin]= useState(null); // { meal, recipe }
@@ -371,15 +373,14 @@ export default function MealPlanner() {
     );
   }, []);
 
-  /* ──────────────── Today's planned meals (for the carousel) ──────────────── */
+  /* ──────────────── Carousel day's planned meals ──────────────── */
   const todayPlannedMeals = useMemo(() => {
-    if (plannerDay === null) return [];
-    const d = DAYS[plannerDay];
+    const d = DAYS[carouselDay];
     return [
       { key: "almuerzo", recipe: RECIPES[d.almuerzo] },
       { key: "cena",     recipe: RECIPES[d.cena] },
     ];
-  }, [plannerDay]);
+  }, [carouselDay]);
 
   /* ──────────────── Registro list — 4 meals for today ──────────────── */
   const registroMeals = ["desayuno", "almuerzo", "merienda", "cena"].map(meal => {
@@ -430,46 +431,47 @@ export default function MealPlanner() {
 
             {/* ── Today section ───────────────────────────────────── */}
             <section style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              {/* Heading row */}
+              {/* Heading row with day navigation */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "0 8px" }}>
-                <span style={{
-                  fontSize: 19, fontWeight: 500, lineHeight: "24px",
-                  color: T.textDefault,
-                }}>
-                  Hoy
-                </span>
-                <span style={{
-                  fontSize: 16, fontWeight: 400, lineHeight: "24px",
-                  color: T.textSecondary,
-                }}>
-                  {formatTodayHeading(today)}
-                </span>
+                <button
+                  onClick={() => setCarouselDay(d => Math.max(0, d - 1))}
+                  disabled={carouselDay === 0}
+                  style={{ background: "none", border: "none", padding: 4, cursor: carouselDay === 0 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", opacity: carouselDay === 0 ? 0.25 : 1 }}
+                >
+                  <ChevronLeft size={20} color={HEX.textDefault} strokeWidth={1.75} />
+                </button>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                  <span style={{ fontSize: 19, fontWeight: 500, lineHeight: "24px", color: T.textDefault }}>
+                    {carouselDay === plannerDay ? "Hoy" : DAYS[carouselDay].day}
+                  </span>
+                  <span style={{ fontSize: 13, fontWeight: 400, lineHeight: "16px", color: T.textSecondary }}>
+                    {formatTodayHeading(new Date(currentWeekDates()[carouselDay] + "T12:00:00"))}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setCarouselDay(d => Math.min(4, d + 1))}
+                  disabled={carouselDay === 4}
+                  style={{ background: "none", border: "none", padding: 4, cursor: carouselDay === 4 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", opacity: carouselDay === 4 ? 0.25 : 1 }}
+                >
+                  <ChevronRight size={20} color={HEX.textDefault} strokeWidth={1.75} />
+                </button>
               </div>
 
-              {/* Carousel of today's planned meals */}
-              {plannerDay === null ? (
-                <EmptyDayCard />
-              ) : (
-                <div
-                  className="no-scrollbar"
-                  style={{
-                    display: "flex", gap: 12,
-                    overflowX: "auto", scrollSnapType: "x mandatory",
-                    marginRight: "-20px",
-                  }}
-                >
-                  {todayPlannedMeals.map(({ key, recipe }) => (
-                    <TodayCard
-                      key={key}
-                      meal={key}
-                      recipe={recipe}
-                      onOpen={() => setRecipeModal({ meal: key, recipe })}
-                    />
-                  ))}
-                  {/* right-edge spacer — padding-right is ignored on overflow:auto flex containers */}
-                  <div style={{ flexShrink: 0, width: 20 }} />
-                </div>
-              )}
+              {/* Carousel of the selected day's planned meals */}
+              <div
+                className="no-scrollbar"
+                style={{ display: "flex", gap: 12, overflowX: "auto", scrollSnapType: "x mandatory", marginRight: "-20px" }}
+              >
+                {todayPlannedMeals.map(({ key, recipe }) => (
+                  <TodayCard
+                    key={key}
+                    meal={key}
+                    recipe={recipe}
+                    onOpen={() => setRecipeModal({ meal: key, recipe })}
+                  />
+                ))}
+                <div style={{ flexShrink: 0, width: 20 }} />
+              </div>
             </section>
 
             {/* ── Registro section ───────────────────────────────── */}
@@ -838,27 +840,7 @@ function TodayCard({ meal, recipe, onOpen }) {
   );
 }
 
-/** Empty-day card for weekends (no plan available). */
-function EmptyDayCard() {
-  return (
-    <div style={{
-      width: "100%", height: 200,
-      borderRadius: T.radiusMd,
-      background: T.bgSurface,
-      display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", gap: 8,
-      padding: 20,
-    }}>
-      <Coffee size={28} color={HEX.textSecondary} strokeWidth={1.75} />
-      <span style={{ fontSize: 16, fontWeight: 500, lineHeight: "24px", color: T.textDefault }}>
-        Día libre
-      </span>
-      <span style={{ fontSize: 13, fontWeight: 400, lineHeight: "16px", color: T.textSecondary, textAlign: "center" }}>
-        No hay plan para hoy. Disfrutá tu fin de semana.
-      </span>
-    </div>
-  );
-}
+
 
 /** Single row in the Registro list — icon, label, action pill. */
 function RegistroListItem({ meal, log, onRegister }) {
@@ -1144,12 +1126,34 @@ function RecipeSheet({ meal, recipe, onClose, onRegister, saving }) {
 function CheckinSheet({ checkin, altForm, setAltForm, onClose, onSave, saving }) {
   const { meal, recipe: plannedRecipe } = checkin;
   const Icon = MEAL_ICON[meal];
-  const [search,      setSearch]      = useState("");
-  const [showAltForm, setShowAltForm] = useState(false);
+  const [search,       setSearch]       = useState("");
+  const [showAltForm,  setShowAltForm]  = useState(false);
+  const [visibleCount, setVisibleCount] = useState(4);
+  const listRef     = useRef(null);
+  const sentinelRef = useRef(null);
 
   const filteredRecipes = Object.entries(RECIPES)
     .filter(([, r]) => r.category === MEAL_CATEGORY[meal])
     .filter(([, r]) => !search || r.name.toLowerCase().includes(search.toLowerCase()));
+
+  const visibleRecipes = filteredRecipes.slice(0, visibleCount);
+  const hasMore        = filteredRecipes.length > visibleCount;
+
+  // Reset visible count on every new search query
+  useEffect(() => { setVisibleCount(4); }, [search]);
+
+  // Load +4 when the sentinel scrolls into view inside the list container
+  useEffect(() => {
+    const container = listRef.current;
+    const sentinel  = sentinelRef.current;
+    if (!container || !sentinel) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setVisibleCount(c => c + 4); },
+      { root: container, threshold: 0 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore]);
 
   const header = (
     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
@@ -1205,9 +1209,16 @@ function CheckinSheet({ checkin, altForm, setAltForm, onClose, onSave, saving })
         />
       </div>
 
-      {/* Recipe list */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
-        {filteredRecipes.map(([key, rec]) => {
+      {/* Recipe list — capped height so sentinel starts below the fold */}
+      <div
+        ref={listRef}
+        style={{
+          display: "flex", flexDirection: "column", gap: 8,
+          maxHeight: 256, overflowY: "auto",
+          marginBottom: 8,
+        }}
+      >
+        {visibleRecipes.map(([key, rec]) => {
           const isPlanned = plannedRecipe && rec.name === plannedRecipe.name;
           return (
             <button
@@ -1223,6 +1234,7 @@ function CheckinSheet({ checkin, altForm, setAltForm, onClose, onSave, saving })
                 cursor: "pointer", opacity: saving ? 0.6 : 1,
                 fontFamily: "'Inter', sans-serif",
                 textAlign: "left",
+                flexShrink: 0,
               }}
             >
               <Icon size={20} color={isPlanned ? HEX.textPrimary : HEX.textDefault} strokeWidth={1.75} />
@@ -1237,7 +1249,11 @@ function CheckinSheet({ checkin, altForm, setAltForm, onClose, onSave, saving })
             </button>
           );
         })}
+        {hasMore && <div ref={sentinelRef} style={{ height: 1, flexShrink: 0 }} />}
+      </div>
 
+      {/* Fixed actions — always visible below the list */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
         {/* No comí */}
         <button
           onClick={() => onSave("skipped")}
