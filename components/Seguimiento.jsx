@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
+import { fetchWeekLogs, saveMealLog } from "@/lib/mealLogs";
 import { DAYS, RECIPES } from "@/lib/data";
 
 const MEAL_CATEGORY = {
@@ -37,6 +37,7 @@ const PLANNED_MEALS = ["desayuno", "almuerzo", "merienda", "cena"];
 const STATUS = {
   plan:        { label: "Segui el plan",  icon: "checkmark", color: S.greenMid },
   alternative: { label: "Comi otra cosa", icon: "swap",      color: S.yellow   },
+  free:        { label: "Comida libre",   icon: "crown",     color: "#8e7cc3"  },
   skipped:     { label: "No comi",        icon: "skip",      color: "#a09080"  },
 };
 
@@ -75,7 +76,6 @@ export default function Seguimiento() {
   const [loading,     setLoading]     = useState(true);
   const [checkinDay,  setCheckinDay]  = useState(null); // { date, dayIdx, meal }
   const [altForm,     setAltForm]     = useState({ recipeName: "", customRecipeName: "", ingredients: "", notes: "" });
-  const [saving,      setSaving]      = useState(false);
   const [view,        setView]        = useState("week"); // "week" | "summary"
   const [selectedDate, setSelectedDate] = useState(todayStr);
 
@@ -90,18 +90,10 @@ export default function Seguimiento() {
 
   const loadLogs = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("meal_logs")
-      .select("*")
-      .in("date", weekDates);
-
-    if (!error && data) {
-      const map = {};
-      data.forEach(row => {
-        if (!map[row.date]) map[row.date] = {};
-        map[row.date][row.meal] = row;
-      });
-      setLogs(map);
+    try {
+      setLogs(await fetchWeekLogs(weekDates));
+    } catch (e) {
+      console.error("No se pudieron cargar los registros:", e);
     }
     setLoading(false);
   }, [weekOffset]);
@@ -122,9 +114,9 @@ export default function Seguimiento() {
     setCheckinDay({ date, dayIdx, meal });
   };
 
+  /* Optimistic save: the UI updates instantly and rolls back if the save fails. */
   const saveLog = async (status) => {
     if (!checkinDay) return;
-    setSaving(true);
     const { date, dayIdx, meal } = checkinDay;
     const isPlanned = PLANNED_MEALS.includes(meal);
     const planned   = isPlanned ? RECIPES[DAYS[dayIdx][meal]] : null;
@@ -138,16 +130,18 @@ export default function Seguimiento() {
       notes:        altForm.notes || null,
     };
 
-    const existing = logs[date]?.[meal];
-    if (existing?.id) {
-      await supabase.from("meal_logs").update(payload).eq("id", existing.id);
-    } else {
-      await supabase.from("meal_logs").insert(payload);
-    }
-
-    setSaving(false);
+    const prevLogs = logs;
+    setLogs(prev => ({ ...prev, [date]: { ...(prev[date] || {}), [meal]: payload } }));
     setCheckinDay(null);
-    loadLogs();
+
+    try {
+      const saved = await saveMealLog(payload);
+      setLogs(prev => ({ ...prev, [date]: { ...(prev[date] || {}), [meal]: saved } }));
+    } catch (e) {
+      console.error(e);
+      setLogs(prevLogs);
+      alert("No se pudo guardar el registro. Revisá tu conexión e intentá de nuevo.");
+    }
   };
 
   // ── Summary stats (almuerzo + cena only) ──────────────────────────────────
@@ -155,6 +149,7 @@ export default function Seguimiento() {
   const loggedMeals   = weekDates.reduce((acc, d) => acc + plannedLogs(d).length, 0);
   const onPlan        = weekDates.reduce((acc, d) => acc + plannedLogs(d).filter(l => l.status === "plan").length, 0);
   const alternative   = weekDates.reduce((acc, d) => acc + plannedLogs(d).filter(l => l.status === "alternative").length, 0);
+  const freeMeals     = weekDates.reduce((acc, d) => acc + plannedLogs(d).filter(l => l.status === "free").length, 0);
   const skipped       = weekDates.reduce((acc, d) => acc + plannedLogs(d).filter(l => l.status === "skipped").length, 0);
   const adherencePct  = loggedMeals > 0 ? Math.round((onPlan / loggedMeals) * 100) : null;
 
@@ -318,10 +313,11 @@ export default function Seguimiento() {
           </div>
 
           {/* Stats row */}
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:12 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:8, marginBottom:12 }}>
             {[
               { label:"En plan",      value: onPlan,      color: S.greenMid },
               { label:"Alternativa",  value: alternative, color: S.yellow   },
+              { label:"Libre",        value: freeMeals,   color: STATUS.free.color },
               { label:"Sin registro", value: skipped,     color:"#a09080"   },
             ].map(({ label, value, color }) => (
               <div key={label} style={{ background:"#fff", border:`1.5px solid ${S.tan}`, borderRadius:10, padding:"12px 8px", textAlign:"center" }}>
@@ -417,7 +413,6 @@ export default function Seguimiento() {
                   background: "#fff", border:`1.5px solid ${S.tan}`,
                   borderRadius:10, display:"flex", alignItems:"center", gap:12,
                   cursor:"pointer", textAlign:"left",
-                  opacity: saving ? 0.6 : 1,
                 }}>
                   <div style={{ width:14, height:14, borderRadius:"50%", background: color, flexShrink:0 }}/>
                   <span style={{ fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:600, color }}>{label}</span>
@@ -492,7 +487,7 @@ export default function Seguimiento() {
               ))}
               <button
                 onClick={() => saveLog("alternative")}
-                disabled={saving || !altForm.recipeName || (altForm.recipeName === "__new__" && !altForm.customRecipeName)}
+                disabled={!altForm.recipeName || (altForm.recipeName === "__new__" && !altForm.customRecipeName)}
                 style={{
                   width:"100%", marginTop:4, padding:"12px",
                   background: (altForm.recipeName && (altForm.recipeName !== "__new__" || altForm.customRecipeName)) ? `linear-gradient(135deg,${S.greenMid},#2c5020)` : "#ede8df",
@@ -502,7 +497,7 @@ export default function Seguimiento() {
                   cursor: (altForm.recipeName && (altForm.recipeName !== "__new__" || altForm.customRecipeName)) ? "pointer" : "not-allowed",
                 }}
               >
-                {saving ? "Guardando..." : "Guardar comida alternativa"}
+                Guardar comida alternativa
               </button>
             </div>
           </div>

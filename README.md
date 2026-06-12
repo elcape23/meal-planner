@@ -17,7 +17,7 @@ create table meal_logs (
   id uuid default gen_random_uuid() primary key,
   date date not null,
   meal text not null check (meal in ('almuerzo', 'cena')),
-  status text not null check (status in ('plan', 'alternative', 'skipped')),
+  status text not null check (status in ('plan', 'alternative', 'free', 'skipped')),
   recipe_name text,
   ingredients text,
   notes text,

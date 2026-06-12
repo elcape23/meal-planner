@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { RECIPES, DAYS, CATEGORIES, fmt, getCat } from "@/lib/data";
 import Seguimiento from "@/components/Seguimiento";
-import { supabase } from "@/lib/supabase";
+import { fetchWeekLogs, saveMealLog } from "@/lib/mealLogs";
 import {
   Home, BookOpen, ShoppingCart,
   ClipboardList, User,
@@ -214,15 +214,14 @@ export default function MealPlanner() {
   const todayDow = today.getDay(); // 0=Sun, 6=Sat
   // Planner data is indexed Mon=0..Dom=6
   const plannerDay = todayDow === 0 ? 6 : todayDow - 1;
-  const todayDateStr = useMemo(() => localDateStr(today), [today]);
 
   const [carouselDay, setCarouselDay] = useState(plannerDay);
+  const carouselDateStr = currentWeekDates()[carouselDay];
 
   const [tab,        setTab]        = useState("planner");
   const [recipeModal,setRecipeModal]= useState(null); // { meal, recipe }
   const [homeCheckin,setHomeCheckin]= useState(null); // { meal, recipe }
   const [homeAltForm,setHomeAltForm]= useState({ recipeName: "", ingredients: "", notes: "" });
-  const [homeSaving, setHomeSaving] = useState(false);
   const [weekLogs,   setWeekLogs]   = useState({});
 
   const [checked,        setChecked]        = useState({});
@@ -252,69 +251,61 @@ export default function MealPlanner() {
     return () => { document.body.style.overflow = ""; };
   }, [homeCheckin, recipeModal]);
 
+  /* Refetch on every return to the home tab — registrations made from the
+     Seguimiento tab live in its own state, so the home copy goes stale. */
   useEffect(() => {
-    const dates = currentWeekDates();
-    supabase.from("meal_logs").select("*").in("date", dates).then(({ data }) => {
-      if (!data) return;
-      const map = {};
-      data.forEach(row => {
-        if (!map[row.date]) map[row.date] = {};
-        map[row.date][row.meal] = row;
-      });
-      setWeekLogs(map);
-    });
-  }, []);
+    if (tab !== "planner") return;
+    fetchWeekLogs(currentWeekDates())
+      .then(setWeekLogs)
+      .catch(e => console.error("No se pudieron cargar los registros:", e));
+  }, [tab]);
 
   const toggleCheck = (n) => setChecked(p => ({ ...p, [n]: !p[n] }));
 
-  const saveHomeLog = async (status, overrideRecipeName = null) => {
+  /* Optimistic upsert: the UI updates instantly and rolls back if the save fails. */
+  const persistLog = async (meal, payload) => {
+    const prevLogs = weekLogs;
+    setWeekLogs(prev => ({
+      ...prev,
+      [payload.date]: { ...(prev[payload.date] || {}), [meal]: payload },
+    }));
+    try {
+      const saved = await saveMealLog(payload);
+      setWeekLogs(prev => ({
+        ...prev,
+        [payload.date]: { ...(prev[payload.date] || {}), [meal]: saved },
+      }));
+    } catch (e) {
+      console.error(e);
+      setWeekLogs(prevLogs);
+      alert("No se pudo guardar el registro. Revisá tu conexión e intentá de nuevo.");
+    }
+  };
+
+  const saveHomeLog = (status, overrideRecipeName = null) => {
     if (!homeCheckin) return;
-    setHomeSaving(true);
     const { meal, recipe } = homeCheckin;
     const payload = {
-      date:        todayDateStr,
+      date:        carouselDateStr,
       meal,
       status,
       recipe_name: overrideRecipeName ?? (status === "plan" ? recipe?.name ?? null : (homeAltForm.recipeName || null)),
       ingredients: status === "alternative" ? homeAltForm.ingredients : null,
       notes:       homeAltForm.notes || null,
     };
-    const { data: existing } = await supabase
-      .from("meal_logs").select("id").eq("date", todayDateStr).eq("meal", meal).maybeSingle();
-    if (existing?.id) {
-      await supabase.from("meal_logs").update(payload).eq("id", existing.id);
-    } else {
-      await supabase.from("meal_logs").insert(payload);
-    }
-    setWeekLogs(prev => ({
-      ...prev,
-      [todayDateStr]: { ...(prev[todayDateStr] || {}), [meal]: { ...payload, id: existing?.id ?? Date.now() } },
-    }));
-    setHomeSaving(false);
     setHomeCheckin(null);
     setHomeAltForm({ recipeName: "", ingredients: "", notes: "" });
+    persistLog(meal, payload);
   };
 
-  const autoRegisterMeal = async (meal, recipe) => {
-    setHomeSaving(true);
+  const autoRegisterMeal = (meal, recipe) => {
     const payload = {
-      date: todayDateStr, meal, status: "plan",
+      date: carouselDateStr, meal, status: "plan",
       recipe_name: recipe?.name ?? null,
       ingredients: null, notes: null,
     };
-    const { data: existing } = await supabase
-      .from("meal_logs").select("id").eq("date", todayDateStr).eq("meal", meal).maybeSingle();
-    if (existing?.id) {
-      await supabase.from("meal_logs").update(payload).eq("id", existing.id);
-    } else {
-      await supabase.from("meal_logs").insert(payload);
-    }
-    setWeekLogs(prev => ({
-      ...prev,
-      [todayDateStr]: { ...(prev[todayDateStr] || {}), [meal]: { ...payload, id: existing?.id ?? Date.now() } },
-    }));
-    setHomeSaving(false);
     setRecipeModal(null);
+    persistLog(meal, payload);
   };
 
   const shoppingList = useMemo(() => {
@@ -384,12 +375,10 @@ export default function MealPlanner() {
       .map(meal => ({ key: meal, recipe: RECIPES[d[meal]] }));
   }, [carouselDay]);
 
-  /* ──────────────── Registro list — 4 meals for today ──────────────── */
+  /* ──────────────── Registro list — 4 meals for the carousel day ──────────────── */
   const registroMeals = ["desayuno", "almuerzo", "merienda", "cena"].map(meal => {
-    const log     = weekLogs[todayDateStr]?.[meal];
-    const planned = plannerDay !== null && DAYS[plannerDay][meal]
-      ? RECIPES[DAYS[plannerDay][meal]]
-      : null;
+    const log     = weekLogs[carouselDateStr]?.[meal];
+    const planned = DAYS[carouselDay][meal] ? RECIPES[DAYS[carouselDay][meal]] : null;
     return { meal, log, planned };
   });
 
@@ -707,7 +696,6 @@ export default function MealPlanner() {
           setAltForm={setHomeAltForm}
           onClose={() => setHomeCheckin(null)}
           onSave={saveHomeLog}
-          saving={homeSaving}
         />
       )}
 
@@ -718,7 +706,6 @@ export default function MealPlanner() {
           recipe={recipeModal.recipe}
           onClose={() => setRecipeModal(null)}
           onRegister={() => autoRegisterMeal(recipeModal.meal, recipeModal.recipe)}
-          saving={homeSaving}
         />
       )}
 
@@ -848,7 +835,7 @@ function TodayCard({ meal, recipe, onOpen }) {
 
 
 /* Almuerzos + cenas are the meals tracked against the weekly plan;
-   the user allows himself FREE_MEALS_PER_WEEK off-plan ("alternative") meals. */
+   the user allows himself FREE_MEALS_PER_WEEK "free" meals per week. */
 const PROGRESS_MEALS = ["almuerzo", "cena"];
 const FREE_MEALS_PER_WEEK = 2;
 
@@ -892,7 +879,7 @@ function WeekProgress({ weekLogs }) {
       if (!log) return;
       logged++;
       if (log.status === "plan") onPlan++;
-      else if (log.status === "alternative") free++;
+      else if (log.status === "free") free++;
     });
   });
 
@@ -972,7 +959,9 @@ function RegistroListItem({ meal, log, onRegister }) {
             color: T.textSecondary,
             whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
           }}>
-            {log.status === "skipped" ? "No comí" : (log.recipe_name || "Registrado")}
+            {log.status === "skipped" ? "No comí"
+              : log.status === "free" ? "Comida libre"
+              : (log.recipe_name || "Registrado")}
           </span>
         )}
       </div>
@@ -1232,7 +1221,12 @@ function CheckinSheet({ checkin, altForm, setAltForm, onClose, onSave, saving })
 
   const filteredRecipes = Object.entries(RECIPES)
     .filter(([, r]) => r.category === MEAL_CATEGORY[meal])
-    .filter(([, r]) => !search || r.name.toLowerCase().includes(search.toLowerCase()));
+    .filter(([, r]) => !search || r.name.toLowerCase().includes(search.toLowerCase()))
+    .sort(([, a], [, b]) => {
+      const aPlanned = plannedRecipe && a.name === plannedRecipe.name;
+      const bPlanned = plannedRecipe && b.name === plannedRecipe.name;
+      return (aPlanned ? 0 : 1) - (bPlanned ? 0 : 1);
+    });
 
   const visibleRecipes = filteredRecipes.slice(0, visibleCount);
   const hasMore        = filteredRecipes.length > visibleCount;
@@ -1352,6 +1346,25 @@ function CheckinSheet({ checkin, altForm, setAltForm, onClose, onSave, saving })
 
       {/* Fixed actions — always visible below the list */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+        {/* Comida libre — consumes one of the week's free meals */}
+        <button
+          onClick={() => onSave("free")}
+          disabled={saving}
+          style={{
+            width: "100%", padding: "14px 16px",
+            background: T.bgSurface, border: "1.5px solid transparent",
+            borderRadius: T.radiusMd,
+            display: "flex", alignItems: "center", gap: 12,
+            cursor: "pointer", opacity: saving ? 0.6 : 1,
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
+          <Crown size={20} color={HEX.textPrimary} strokeWidth={1.75} />
+          <span style={{ fontSize: 16, fontWeight: 500, lineHeight: "24px", color: T.textPrimary }}>
+            Comida libre
+          </span>
+        </button>
+
         {/* No comí */}
         <button
           onClick={() => onSave("skipped")}
