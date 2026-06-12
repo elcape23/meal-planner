@@ -3,13 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchWeekLogs, saveMealLog } from "@/lib/mealLogs";
 import { DAYS, RECIPES } from "@/lib/data";
-
-const MEAL_CATEGORY = {
-  desayuno:  "desayuno_merienda",
-  merienda:  "desayuno_merienda",
-  almuerzo:  "almuerzo_cena",
-  cena:      "almuerzo_cena",
-};
+import { CheckinSheet } from "@/components/CheckinSheet";
 
 const S = {
   greenDark:  "#2c4a1e",
@@ -75,7 +69,7 @@ export default function Seguimiento() {
   const [logs,        setLogs]        = useState({}); // { "2024-01-01": { almuerzo: {...}, cena: {...} } }
   const [loading,     setLoading]     = useState(true);
   const [checkinDay,  setCheckinDay]  = useState(null); // { date, dayIdx, meal }
-  const [altForm,     setAltForm]     = useState({ recipeName: "", customRecipeName: "", ingredients: "", notes: "" });
+  const [altForm,     setAltForm]     = useState({ recipeName: "", ingredients: "", notes: "" });
   const [view,        setView]        = useState("week"); // "week" | "summary"
   const [selectedDate, setSelectedDate] = useState(todayStr);
 
@@ -110,12 +104,13 @@ export default function Seguimiento() {
   };
 
   const openCheckin = (date, dayIdx, meal) => {
-    setAltForm({ recipeName: "", customRecipeName: "", ingredients: "", notes: "" });
+    setAltForm({ recipeName: "", ingredients: "", notes: "" });
     setCheckinDay({ date, dayIdx, meal });
   };
 
-  /* Optimistic save: the UI updates instantly and rolls back if the save fails. */
-  const saveLog = async (status) => {
+  /* Optimistic save: the UI updates instantly and rolls back if the save fails.
+     onSave(status, overrideRecipeName?) — matches the shared CheckinSheet. */
+  const saveLog = async (status, overrideRecipeName = null) => {
     if (!checkinDay) return;
     const { date, dayIdx, meal } = checkinDay;
     const isPlanned = PLANNED_MEALS.includes(meal);
@@ -125,7 +120,7 @@ export default function Seguimiento() {
       date,
       meal,
       status,
-      recipe_name:  status === "plan" && planned ? planned.name : (altForm.recipeName === "__new__" ? altForm.customRecipeName : altForm.recipeName) || null,
+      recipe_name:  overrideRecipeName ?? (status === "plan" ? planned?.name ?? null : (altForm.recipeName || null)),
       ingredients:  status === "alternative" ? altForm.ingredients : null,
       notes:        altForm.notes || null,
     };
@@ -386,122 +381,21 @@ export default function Seguimiento() {
         </div>
       )}
 
-      {/* ── CHECK-IN MODAL ── */}
+      {/* ── CHECK-IN MODAL ── shared with the Home tab (same design) */}
       {checkinDay && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", zIndex:1000, display:"flex", alignItems:"flex-end" }}>
-          <div style={{ width:"100%", background: S.cream, borderRadius:"16px 16px 0 0", padding:"24px 20px 40px", maxHeight:"85vh", overflowY:"auto" }}>
-            {/* Modal header */}
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-              <div>
-                <div style={{ fontSize:10, letterSpacing:"2px", textTransform:"uppercase", color:"#a09080" }}>
-                  {DAYS[checkinDay.dayIdx].day} · {MEALS.find(m => m.key === checkinDay.meal)?.label}
-                </div>
-                <div style={{ fontSize:14, fontWeight:700, color: S.brownDark, marginTop:2 }}>
-                  {PLANNED_MEALS.includes(checkinDay.meal)
-                    ? RECIPES[DAYS[checkinDay.dayIdx][checkinDay.meal]].name
-                    : "Registrar comida"}
-                </div>
-              </div>
-              <button onClick={() => setCheckinDay(null)} style={{ background:"none", border:"none", fontSize:20, color:"#a09080", cursor:"pointer" }}>✕</button>
-            </div>
-
-            {/* Status buttons */}
-            <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:20 }}>
-              {Object.entries(STATUS).map(([key, { label, color }]) => (
-                <button key={key} onClick={() => key !== "alternative" && saveLog(key)} style={{
-                  width:"100%", padding:"14px 16px",
-                  background: "#fff", border:`1.5px solid ${S.tan}`,
-                  borderRadius:10, display:"flex", alignItems:"center", gap:12,
-                  cursor:"pointer", textAlign:"left",
-                }}>
-                  <div style={{ width:14, height:14, borderRadius:"50%", background: color, flexShrink:0 }}/>
-                  <span style={{ fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:600, color }}>{label}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Alternative form */}
-            <div style={{ background:"#fff", border:`1.5px solid ${S.tan}`, borderRadius:12, padding:"16px" }}>
-              <div style={{ fontSize:11, letterSpacing:"1.5px", textTransform:"uppercase", color:"#a09080", marginBottom:12 }}>Detalle de comida alternativa</div>
-              {/* Recipe selector */}
-              <div style={{ marginBottom:10 }}>
-                <div style={{ fontSize:11, color:"#a09080", marginBottom:4 }}>Nombre de la comida</div>
-                <select
-                  value={altForm.recipeName}
-                  onChange={e => setAltForm(p => ({ ...p, recipeName: e.target.value, customRecipeName: "" }))}
-                  style={{
-                    width:"100%", padding:"10px 12px", borderRadius:8,
-                    border:`1px solid ${S.tan}`, fontSize:13,
-                    fontFamily:"'Inter',sans-serif", color: altForm.recipeName ? S.brownDark : "#a09080",
-                    background: S.cream, outline:"none", appearance:"none",
-                  }}
-                >
-                  <option value="">Seleccioná una receta...</option>
-                  {Object.values(RECIPES)
-                    .filter(r => r.category === MEAL_CATEGORY[checkinDay.meal])
-                    .map(r => (
-                      <option key={r.name} value={r.name}>{r.emoji} {r.name}</option>
-                    ))}
-                  <option value="__new__">+ Agregar nueva receta</option>
-                </select>
-              </div>
-
-              {/* Custom recipe name input — only shown when "new" is selected */}
-              {altForm.recipeName === "__new__" && (
-                <div style={{ marginBottom:10 }}>
-                  <div style={{ fontSize:11, color:"#a09080", marginBottom:4 }}>Nombre de la nueva receta</div>
-                  <input
-                    value={altForm.customRecipeName}
-                    onChange={e => setAltForm(p => ({ ...p, customRecipeName: e.target.value }))}
-                    placeholder="Ej: Milanesa con ensalada"
-                    autoFocus
-                    style={{
-                      width:"100%", padding:"10px 12px", borderRadius:8,
-                      border:`1px solid ${S.greenMid}`, fontSize:13,
-                      fontFamily:"'Inter',sans-serif", color: S.brownDark,
-                      background: S.cream, outline:"none",
-                    }}
-                  />
-                </div>
-              )}
-
-              {/* Ingredients & notes */}
-              {[
-                { key:"ingredients", label:"Ingredientes (opcional)", placeholder:"Ej: Milanesa 200g, lechuga, tomate" },
-                { key:"notes",       label:"Notas (opcional)",        placeholder:"Ej: Comí afuera con amigos" },
-              ].map(({ key, label, placeholder }) => (
-                <div key={key} style={{ marginBottom:10 }}>
-                  <div style={{ fontSize:11, color:"#a09080", marginBottom:4 }}>{label}</div>
-                  <input
-                    value={altForm[key]}
-                    onChange={e => setAltForm(p => ({ ...p, [key]: e.target.value }))}
-                    placeholder={placeholder}
-                    style={{
-                      width:"100%", padding:"10px 12px", borderRadius:8,
-                      border:`1px solid ${S.tan}`, fontSize:13,
-                      fontFamily:"'Inter',sans-serif", color: S.brownDark,
-                      background: S.cream, outline:"none",
-                    }}
-                  />
-                </div>
-              ))}
-              <button
-                onClick={() => saveLog("alternative")}
-                disabled={!altForm.recipeName || (altForm.recipeName === "__new__" && !altForm.customRecipeName)}
-                style={{
-                  width:"100%", marginTop:4, padding:"12px",
-                  background: (altForm.recipeName && (altForm.recipeName !== "__new__" || altForm.customRecipeName)) ? `linear-gradient(135deg,${S.greenMid},#2c5020)` : "#ede8df",
-                  color: (altForm.recipeName && (altForm.recipeName !== "__new__" || altForm.customRecipeName)) ? "#fff" : "#a09080",
-                  border:"none", borderRadius:10,
-                  fontSize:14, fontFamily:"'Inter',sans-serif", fontWeight:700,
-                  cursor: (altForm.recipeName && (altForm.recipeName !== "__new__" || altForm.customRecipeName)) ? "pointer" : "not-allowed",
-                }}
-              >
-                Guardar comida alternativa
-              </button>
-            </div>
-          </div>
-        </div>
+        <CheckinSheet
+          checkin={{
+            meal: checkinDay.meal,
+            recipe: PLANNED_MEALS.includes(checkinDay.meal)
+              ? RECIPES[DAYS[checkinDay.dayIdx][checkinDay.meal]]
+              : null,
+          }}
+          altForm={altForm}
+          setAltForm={setAltForm}
+          onClose={() => setCheckinDay(null)}
+          onSave={saveLog}
+          saving={false}
+        />
       )}
     </div>
   );
