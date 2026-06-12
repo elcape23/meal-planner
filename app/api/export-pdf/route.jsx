@@ -140,12 +140,14 @@ function RecipePDF({ selectedDayIndices, mealTypes }) {
                 <Text style={styles.dayTitle}>{dayData.day.toUpperCase()}</Text>
               </View>
 
-              {["almuerzo", "cena"].filter(m => mealTypes[m]).map(meal => {
+              {["desayuno", "almuerzo", "merienda", "cena"]
+                .filter(m => mealTypes[m] && RECIPES[dayData[m]])
+                .map(meal => {
                 const recipe = RECIPES[dayData[meal]];
                 return (
                   <View key={meal} style={styles.mealBlock}>
                     <Text style={styles.mealLabel}>
-                      {meal === "almuerzo" ? "ALMUERZO" : "CENA"}
+                      {meal.toUpperCase()}
                     </Text>
                     <Text style={styles.recipeName}>{recipe.name}</Text>
                     {recipe.note && (

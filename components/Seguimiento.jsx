@@ -32,7 +32,7 @@ const MEALS = [
 ];
 
 // Meals that have a planned recipe from the plan
-const PLANNED_MEALS = ["almuerzo", "cena"];
+const PLANNED_MEALS = ["desayuno", "almuerzo", "merienda", "cena"];
 
 const STATUS = {
   plan:        { label: "Segui el plan",  icon: "checkmark", color: S.greenMid },
@@ -58,7 +58,7 @@ function dateStr(date) {
 }
 
 function getWeekDates(weekStart) {
-  return Array.from({ length: 5 }, (_, i) => {
+  return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
     d.setDate(weekStart.getDate() + i);
     return dateStr(d);
@@ -110,7 +110,7 @@ export default function Seguimiento() {
 
   const weekLabel = () => {
     const end = new Date(weekStart);
-    end.setDate(weekStart.getDate() + 4);
+    end.setDate(weekStart.getDate() + 6);
     const opts = { day: "numeric", month: "short" };
     if (weekOffset === 0) return "Esta semana";
     if (weekOffset === -1) return "Semana pasada";
@@ -349,7 +349,7 @@ export default function Seguimiento() {
                       transition:"background 0.3s",
                     }}/>
                     <div style={{ fontSize:9, color:"#a09080", marginTop:4 }}>
-                      {plannedLogs(date).length}/2
+                      {plannedLogs(date).length}/{PLANNED_MEALS.length}
                     </div>
                   </div>
                 );

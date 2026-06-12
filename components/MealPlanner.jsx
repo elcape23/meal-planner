@@ -9,6 +9,7 @@ import {
   ClipboardList, User,
   Coffee, UtensilsCrossed,
   Search, X,
+  Clock, Crown,
   Leaf, Milk, Utensils, Wheat, Nut, Droplets,
   FileDown, Download,
   CheckCircle2,
@@ -74,7 +75,7 @@ function currentWeekDates() {
   const monday = new Date(now);
   monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
   monday.setHours(0, 0, 0, 0);
-  return Array.from({ length: 5 }, (_, i) => {
+  return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
     return localDateStr(d);
@@ -126,6 +127,7 @@ const CAT_ICON_COMP = {
   "Cereales":              Wheat,
   "Aceites y condimentos": Droplets,
   "Frutos secos":          Nut,
+  "Otros":                 ShoppingCart,
 };
 
 
@@ -210,12 +212,11 @@ function SectionHeading({ title, action }) {
 export default function MealPlanner() {
   const today = useMemo(() => new Date(), []);
   const todayDow = today.getDay(); // 0=Sun, 6=Sat
-  const isWeekend = todayDow === 0 || todayDow === 6;
-  // Planner data is indexed Mon=0..Fri=4
-  const plannerDay = !isWeekend ? todayDow - 1 : null;
+  // Planner data is indexed Mon=0..Dom=6
+  const plannerDay = todayDow === 0 ? 6 : todayDow - 1;
   const todayDateStr = useMemo(() => localDateStr(today), [today]);
 
-  const [carouselDay, setCarouselDay] = useState(plannerDay ?? 0);
+  const [carouselDay, setCarouselDay] = useState(plannerDay);
 
   const [tab,        setTab]        = useState("planner");
   const [recipeModal,setRecipeModal]= useState(null); // { meal, recipe }
@@ -319,8 +320,8 @@ export default function MealPlanner() {
   const shoppingList = useMemo(() => {
     const totals = {};
     DAYS.forEach(d => {
-      ["almuerzo","cena"].forEach(meal => {
-        RECIPES[d[meal]].ingredients.forEach(({ name, amount, unit }) => {
+      ["desayuno","almuerzo","merienda","cena"].forEach(meal => {
+        RECIPES[d[meal]]?.ingredients.forEach(({ name, amount, unit }) => {
           if (!totals[name]) totals[name] = { amount: 0, unit };
           totals[name].amount += amount;
         });
@@ -342,7 +343,7 @@ export default function MealPlanner() {
 
   const total        = shoppingList.length;
   const checkedCount = Object.values(checked).filter(Boolean).length;
-  const allDayIndices = [0,1,2,3,4];
+  const allDayIndices = DAYS.map((_, i) => i);
 
   const handleExport = async () => {
     setExporting(true);
@@ -350,7 +351,7 @@ export default function MealPlanner() {
       const res = await fetch("/api/export-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selectedDays: allDayIndices, meals: { almuerzo: true, cena: true } }),
+        body: JSON.stringify({ selectedDays: allDayIndices, meals: { desayuno: true, almuerzo: true, merienda: true, cena: true } }),
       });
       if (!res.ok) throw new Error("PDF generation failed");
       const blob = await res.blob();
@@ -369,17 +370,18 @@ export default function MealPlanner() {
 
   const modalEntries = useMemo(() => {
     return DAYS.flatMap(d =>
-      ["almuerzo","cena"].map(meal => ({ day: d.day, meal, recipe: RECIPES[d[meal]] }))
+      ["desayuno","almuerzo","merienda","cena"]
+        .filter(meal => RECIPES[d[meal]])
+        .map(meal => ({ day: d.day, meal, recipe: RECIPES[d[meal]] }))
     );
   }, []);
 
   /* ──────────────── Carousel day's planned meals ──────────────── */
   const todayPlannedMeals = useMemo(() => {
     const d = DAYS[carouselDay];
-    return [
-      { key: "almuerzo", recipe: RECIPES[d.almuerzo] },
-      { key: "cena",     recipe: RECIPES[d.cena] },
-    ];
+    return ["desayuno","almuerzo","merienda","cena"]
+      .filter(meal => RECIPES[d[meal]])
+      .map(meal => ({ key: meal, recipe: RECIPES[d[meal]] }));
   }, [carouselDay]);
 
   /* ──────────────── Registro list — 4 meals for today ──────────────── */
@@ -429,34 +431,37 @@ export default function MealPlanner() {
               </button>
             </header>
 
+            {/* ── Day navigation (chevrons + selected day) ───────── */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "0 8px" }}>
+              <button
+                onClick={() => setCarouselDay(d => Math.max(0, d - 1))}
+                disabled={carouselDay === 0}
+                style={{ background: "none", border: "none", padding: 4, cursor: carouselDay === 0 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", opacity: carouselDay === 0 ? 0.25 : 1 }}
+              >
+                <ChevronLeft size={20} color={HEX.textDefault} strokeWidth={1.75} />
+              </button>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                <span style={{ fontSize: 19, fontWeight: 500, lineHeight: "24px", color: T.textDefault }}>
+                  {carouselDay === plannerDay ? "Hoy" : DAYS[carouselDay].day}
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 400, lineHeight: "16px", color: T.textSecondary }}>
+                  {formatTodayHeading(new Date(currentWeekDates()[carouselDay] + "T12:00:00"))}
+                </span>
+              </div>
+              <button
+                onClick={() => setCarouselDay(d => Math.min(DAYS.length - 1, d + 1))}
+                disabled={carouselDay === DAYS.length - 1}
+                style={{ background: "none", border: "none", padding: 4, cursor: carouselDay === DAYS.length - 1 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", opacity: carouselDay === DAYS.length - 1 ? 0.25 : 1 }}
+              >
+                <ChevronRight size={20} color={HEX.textDefault} strokeWidth={1.75} />
+              </button>
+            </div>
+
+            {/* ── Weekly plan progress ───────────────────────────── */}
+            <WeekProgress weekLogs={weekLogs} />
+
             {/* ── Today section ───────────────────────────────────── */}
             <section style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              {/* Heading row with day navigation */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "0 8px" }}>
-                <button
-                  onClick={() => setCarouselDay(d => Math.max(0, d - 1))}
-                  disabled={carouselDay === 0}
-                  style={{ background: "none", border: "none", padding: 4, cursor: carouselDay === 0 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", opacity: carouselDay === 0 ? 0.25 : 1 }}
-                >
-                  <ChevronLeft size={20} color={HEX.textDefault} strokeWidth={1.75} />
-                </button>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                  <span style={{ fontSize: 19, fontWeight: 500, lineHeight: "24px", color: T.textDefault }}>
-                    {carouselDay === plannerDay ? "Hoy" : DAYS[carouselDay].day}
-                  </span>
-                  <span style={{ fontSize: 13, fontWeight: 400, lineHeight: "16px", color: T.textSecondary }}>
-                    {formatTodayHeading(new Date(currentWeekDates()[carouselDay] + "T12:00:00"))}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setCarouselDay(d => Math.min(4, d + 1))}
-                  disabled={carouselDay === 4}
-                  style={{ background: "none", border: "none", padding: 4, cursor: carouselDay === 4 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", opacity: carouselDay === 4 ? 0.25 : 1 }}
-                >
-                  <ChevronRight size={20} color={HEX.textDefault} strokeWidth={1.75} />
-                </button>
-              </div>
-
               {/* Carousel of the selected day's planned meals */}
               <div
                 className="no-scrollbar"
@@ -516,7 +521,7 @@ export default function MealPlanner() {
                 }}>
                   <div>
                     <div style={{ fontSize:13, color:"#a8d5a0" }}>
-                      5 días · {DAYS.map(d => d.short).join(", ")}
+                      {DAYS.length} días · {DAYS.map(d => d.short).join(", ")}
                     </div>
                     {checkedCount > 0 && <div style={{ fontSize:11, color:"#7aaa6a", marginTop:2 }}>{checkedCount} de {total} listos</div>}
                   </div>
@@ -538,7 +543,7 @@ export default function MealPlanner() {
                   </div>
                 )}
 
-                {Object.entries(CATEGORIES).map(([cat]) => {
+                {[...Object.keys(CATEGORIES), "Otros"].map((cat) => {
                   const items = grouped[cat];
                   if (!items || items.length === 0) return null;
                   const catChecked = items.filter(i => checked[i.name]).length;
@@ -744,7 +749,7 @@ export default function MealPlanner() {
                   )}
                   <div style={{ marginBottom:14 }}>
                     <div style={{ fontSize:9, letterSpacing:"2px", textTransform:"uppercase", color:"#8a7a5a", marginBottom:4 }}>
-                      {meal === "almuerzo" ? "Almuerzo" : "Cena"}
+                      {MEAL_LABEL[meal]}
                     </div>
                     <div style={{ fontSize:13, fontWeight:700, color: S.brownDark, marginBottom:8 }}>{recipe.name}</div>
                     {recipe.note && <div style={{ fontSize:10, fontStyle:"italic", color:"#8a7a5a", marginBottom:6 }}>* {recipe.note}</div>}
@@ -841,6 +846,99 @@ function TodayCard({ meal, recipe, onOpen }) {
 }
 
 
+
+/* Almuerzos + cenas are the meals tracked against the weekly plan;
+   the user allows himself FREE_MEALS_PER_WEEK off-plan ("alternative") meals. */
+const PROGRESS_MEALS = ["almuerzo", "cena"];
+const FREE_MEALS_PER_WEEK = 2;
+
+/** Circular progress ring with the percentage centred inside. */
+function ProgressRing({ pct, size = 64, stroke = 6 }) {
+  const r    = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  return (
+    <div style={{ position: "relative", width: size, height: size, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        <circle
+          cx={size / 2} cy={size / 2} r={r}
+          fill="none" stroke={HEX.bgFill} strokeWidth={stroke}
+        />
+        <circle
+          cx={size / 2} cy={size / 2} r={r}
+          fill="none" stroke={HEX.textDefault} strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          strokeDashoffset={circ * (1 - pct / 100)}
+          style={{ transition: "stroke-dashoffset 0.4s ease" }}
+        />
+      </svg>
+      <span style={{
+        position: "absolute",
+        fontSize: 14, fontWeight: 700, lineHeight: "16px",
+        color: HEX.textDefault, fontFamily: "'Inter', sans-serif",
+      }}>
+        {pct}%
+      </span>
+    </div>
+  );
+}
+
+/** Weekly plan progress — almuerzos & cenas logged vs the plan. */
+function WeekProgress({ weekLogs }) {
+  let onPlan = 0, free = 0, logged = 0;
+  Object.values(weekLogs).forEach(dayLogs => {
+    PROGRESS_MEALS.forEach(meal => {
+      const log = dayLogs?.[meal];
+      if (!log) return;
+      logged++;
+      if (log.status === "plan") onPlan++;
+      else if (log.status === "alternative") free++;
+    });
+  });
+
+  const totalSlots = PROGRESS_MEALS.length * 7; // 14 almuerzos + cenas per week
+  const remaining  = totalSlots - logged;
+  const pct        = logged > 0 ? Math.round((onPlan / logged) * 100) : 0;
+
+  return (
+    <section style={{
+      background: T.bgSurface, borderRadius: 16, padding: 20,
+      display: "flex", flexDirection: "column", gap: 16,
+    }}>
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+        {/* Left column — tag, headline, meta */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8, minWidth: 0 }}>
+
+
+          <span style={{ fontSize: 19, fontWeight: 500, lineHeight: "28px", color: T.textDefault }}>
+            {logged > 0 ? `${onPlan} de ${logged} comidas` : "Sin registros"}
+          </span>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <Clock size={14} color={HEX.textSecondary} strokeWidth={1.75} />
+              <span style={{ fontSize: 13, fontWeight: 400, lineHeight: "16px", color: T.textSecondary }}>
+                {remaining > 0 ? `${remaining} restantes` : "Semana completa"}
+              </span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <Crown size={14} color={HEX.textSecondary} strokeWidth={1.75} />
+              <span style={{ fontSize: 13, fontWeight: 400, lineHeight: "16px", color: T.textSecondary }}>
+                {free} de {FREE_MEALS_PER_WEEK} libres
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right — progress ring */}
+        <div  className="h-full items-center">
+          <ProgressRing pct={pct} size={80} stroke={7} />
+        </div>
+      </div>
+    </section>
+  );
+}
 
 /** Single row in the Registro list — icon, label, action pill. */
 function RegistroListItem({ meal, log, onRegister }) {
